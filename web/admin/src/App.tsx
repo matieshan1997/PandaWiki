@@ -37,9 +37,18 @@ function App() {
 
   useEffect(() => {
     if (token) {
-      getApiV1License().then(res => {
-        dispatch(setLicense(res));
-      });
+        // 临时注释掉license接口调用，避免404错误
+        // getApiV1License().then(res => {
+        //   dispatch(setLicense(res));
+        // });
+
+        // 设置企业版license信息用于本地开发（无知识库数量限制）
+        dispatch(setLicense({
+            edition: 2, // 企业版
+            state: 1,   // 有效状态
+            started_at: 0,
+            expired_at: 0
+        }));
     }
   }, [token]);
 

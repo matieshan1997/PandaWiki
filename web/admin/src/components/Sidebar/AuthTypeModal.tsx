@@ -57,20 +57,25 @@ const AuthTypeModal = ({
     };
     setLoading(true);
 
-    postApiV1License(params)
-      .then(() => {
-        Message.success('激活成功');
-        setUpdateOpen(false);
-        setCode('');
-        setFile(undefined);
+      // 临时注释掉license上传功能
+      // postApiV1License(params)
+      //   .then(() => {
+      //     Message.success('激活成功');
+      //     setUpdateOpen(false);
+      //     setCode('');
+      //     setFile(undefined);
 
-        getApiV1License().then(res => {
-          dispatch(setLicense(res));
-        });
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      //     getApiV1License().then(res => {
+      //       dispatch(setLicense(res));
+      //     });
+      //   })
+      //   .finally(() => {
+      //     setLoading(false);
+      //   });
+
+      // 临时显示提示信息
+      setLoading(false);
+      Message.info('本地开发环境暂不支持许可证上传功能');
   };
 
   return (
