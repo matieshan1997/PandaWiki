@@ -185,7 +185,7 @@ func (h *UserHandler) ResetPassword(c echo.Context) error {
 		return h.NewResponseWithError(c, "failed to get user", err)
 	}
 	if user.Account == "admin" && userID == req.ID {
-		return h.NewResponseWithError(c, "请修改安装目录下 .env 文件中的 ADMIN_PASSWORD，并重启 panda-wiki-api 容器使更改生效。", nil)
+		return h.NewResponseWithError(c, "请修改安装目录下 .env 文件中的 ADMIN_PASSWORD，并重启 jcloud-wiki-api 容器使更改生效。", nil)
 	}
 	if user.Account != "admin" && userID != req.ID {
 		return h.NewResponseWithError(c, "只有管理员可以重置其他用户密码", nil)

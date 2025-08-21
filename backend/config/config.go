@@ -89,7 +89,7 @@ func NewConfig() (*Config, error) {
 			Port: 8000,
 		},
 		PG: PGConfig{
-			DSN: "host=panda-wiki-postgres user=panda-wiki password=panda-wiki-secret dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai",
+			DSN: "host=jcloud-wiki-postgres user=panda-wiki password=panda-wiki-secret dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai",
 		},
 		MQ: MQConfig{
 			Type: "nats",
@@ -107,7 +107,7 @@ func NewConfig() (*Config, error) {
 			},
 		},
 		Redis: RedisConfig{
-			Addr:     "panda-wiki-redis:6379",
+			Addr:     "jcloud-wiki-redis:6379",
 			Password: "",
 		},
 		Auth: AuthConfig{
@@ -115,7 +115,7 @@ func NewConfig() (*Config, error) {
 			JWT:  JWTConfig{Secret: ""},
 		},
 		S3: S3Config{
-			Endpoint:  "panda-wiki-minio:9000",
+			Endpoint:  "jcloud-wiki-minio:9000",
 			AccessKey: "s3panda-wiki",
 			SecretKey: "",
 		},
@@ -150,7 +150,7 @@ func NewConfig() (*Config, error) {
 // overrideWithEnv override sensitive info with env variables
 func overrideWithEnv(c *Config) {
 	if env := os.Getenv("POSTGRES_PASSWORD"); env != "" {
-		c.PG.DSN = fmt.Sprintf("host=panda-wiki-postgres user=panda-wiki password=%s dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai", env)
+		c.PG.DSN = fmt.Sprintf("host=jcloud-wiki-postgres user=panda-wiki password=%s dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai", env)
 	}
 	if env := os.Getenv("NATS_PASSWORD"); env != "" {
 		c.MQ.NATS.Password = env
