@@ -39,11 +39,11 @@ func NewKnowledgeBaseHandler(
 	}
 
 	group := echo.Group("/api/v1/knowledge_base", h.auth.Authorize)
-	group.POST("", h.CreateKnowledgeBase)
+	group.POST("", h.CreateKnowledgeBase, h.auth.ValidateUserRole(consts.UserRoleAdmin))
 	group.GET("/list", h.GetKnowledgeBaseList)
 	group.GET("/detail", h.GetKnowledgeBaseDetail)
 	group.PUT("/detail", h.UpdateKnowledgeBase, h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
-	group.DELETE("/detail", h.DeleteKnowledgeBase, h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
+	group.DELETE("/detail", h.DeleteKnowledgeBase, h.auth.ValidateUserRole(consts.UserRoleAdmin))
 
 	// user management
 	userGroup := group.Group("/user", h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
@@ -71,6 +71,7 @@ func NewKnowledgeBaseHandler(
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/knowledge_base [post]
 func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
+
 	var req domain.CreateKnowledgeBaseReq
 	if err := c.Bind(&req); err != nil {
 		return h.NewResponseWithError(c, "invalid request", err)
@@ -90,18 +91,9 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 		return h.NewResponseWithError(c, "ports is required", nil)
 	}
 
-	req.MaxKB = 5 // 默认限制为5个知识库
-	maxKB := c.Get("max_kb")
-	if maxKB != nil {
-		req.MaxKB = maxKB.(int)
-	}
+	req.MaxKB = domain.GetBaseEditionLimitation(c.Request().Context()).MaxKb
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "failed to get user", nil)
-	}
-
-	did, err := h.usecase.CreateKnowledgeBase(c.Request().Context(), &req, userId)
+	did, err := h.usecase.CreateKnowledgeBase(c.Request().Context(), &req)
 	if err != nil {
 		if errors.Is(err, domain.ErrPortHostAlreadyExists) {
 			return h.NewResponseWithError(c, "端口或域名已被其他知识库占用", nil)
@@ -128,12 +120,7 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 //	@Router			/api/v1/knowledge_base/list [get]
 func (h *KnowledgeBaseHandler) GetKnowledgeBaseList(c echo.Context) error {
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "not found user", nil)
-	}
-
-	knowledgeBases, err := h.usecase.GetKnowledgeBaseListByUserId(c.Request().Context(), userId)
+	knowledgeBases, err := h.usecase.GetKnowledgeBaseListByUserId(c.Request().Context())
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get knowledge base list", err)
 	}
@@ -192,19 +179,19 @@ func (h *KnowledgeBaseHandler) GetKnowledgeBaseDetail(c echo.Context) error {
 		return h.NewResponseWithError(c, "kb id is required", nil)
 	}
 
-	userID, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "failed to get user", nil)
-	}
-
 	kb, err := h.usecase.GetKnowledgeBase(c.Request().Context(), kbID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get knowledge base detail", err)
 	}
 
-	perm, err := h.usecase.GetKnowledgeBasePerm(c.Request().Context(), kbID, userID)
+	perm, err := h.usecase.GetKnowledgeBasePerm(c.Request().Context(), kbID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get knowledge base permission", err)
+	}
+
+	if perm != consts.UserKBPermissionFullControl {
+		kb.AccessSettings.PrivateKey = ""
+		kb.AccessSettings.PublicKey = ""
 	}
 
 	return h.NewResponseWithData(c, &domain.KnowledgeBaseDetail{
@@ -253,6 +240,12 @@ func (h *KnowledgeBaseHandler) DeleteKnowledgeBase(c echo.Context) error {
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/knowledge_base/release [post]
 func (h *KnowledgeBaseHandler) CreateKBRelease(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+
 	req := &domain.CreateKBReleaseReq{}
 	if err := c.Bind(req); err != nil {
 		return h.NewResponseWithError(c, "request body is invalid", err)
@@ -261,7 +254,7 @@ func (h *KnowledgeBaseHandler) CreateKBRelease(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
 
-	id, err := h.usecase.CreateKBRelease(c.Request().Context(), req)
+	id, err := h.usecase.CreateKBRelease(ctx, req, authInfo.UserId)
 	if err != nil {
 		return h.NewResponseWithError(c, "create kb release failed", err)
 	}

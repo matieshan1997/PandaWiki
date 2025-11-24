@@ -1,25 +1,23 @@
-import { postApiV1License, getApiV1License } from '@/request/pro/License';
-import { PostApiV1LicensePayload } from '@/request/pro/types';
+import {
+  postApiV1License,
+  getApiV1License,
+  deleteApiV1License,
+} from '@/request/pro/License';
 import HelpCenter from '@/assets/json/help-center.json';
 import Takeoff from '@/assets/json/takeoff.json';
+import error from '@/assets/json/error.json';
 import IconUpgrade from '@/assets/json/upgrade.json';
 import Upload from '@/components/UploadFile/Drag';
-import { EditionType } from '@/constant/enums';
+import { useVersionInfo } from '@/hooks';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setLicense } from '@/store/slices/config';
-import {
-  Box,
-  Button,
-  IconButton,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-} from '@mui/material';
-import { CusTabs, Icon, Message, Modal } from 'ct-mui';
+import { Box, Button, IconButton, Stack, TextField } from '@mui/material';
+import { CusTabs, message, Modal } from '@ctzhian/ui';
+import { IconWenjian, IconIcon_tool_close } from '@panda-wiki/icons';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import LottieIcon from '../LottieIcon';
+import { ConstsLicenseEdition } from '@/request/types';
 
 interface AuthTypeModalProps {
   open: boolean;
@@ -38,44 +36,65 @@ const AuthTypeModal = ({
   const { license } = useAppSelector(state => state.config);
 
   const [selected, setSelected] = useState<'file' | 'code'>(
-    license.edition === 2 ? 'file' : 'code',
-  );
-  const [authVersion, setAuthVersion] = useState<'contributor' | 'enterprise'>(
-    license.edition === 2 ? 'enterprise' : 'contributor',
+    license.edition === ConstsLicenseEdition.LicenseEditionEnterprise
+      ? 'file'
+      : 'code',
   );
   const [updateOpen, setUpdateOpen] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | undefined>(undefined);
+  const [unbindLoading, setUnbindLoading] = useState(false);
+
+  const versionInfo = useVersionInfo();
 
   const handleSubmit = () => {
-    const params: PostApiV1LicensePayload = {
-      license_edition: authVersion,
+    setLoading(true);
+    postApiV1License({
       license_type: selected,
       license_code: code,
       license_file: file,
-    };
-    setLoading(true);
+    })
+      .then(() => {
+        message.success('激活成功');
+        setUpdateOpen(false);
+        setCode('');
+        setFile(undefined);
 
-      // 临时注释掉license上传功能
-      // postApiV1License(params)
-      //   .then(() => {
-      //     Message.success('激活成功');
-      //     setUpdateOpen(false);
-      //     setCode('');
-      //     setFile(undefined);
+        getApiV1License().then(res => {
+          dispatch(setLicense(res));
+        });
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
 
-      //     getApiV1License().then(res => {
-      //       dispatch(setLicense(res));
-      //     });
-      //   })
-      //   .finally(() => {
-      //     setLoading(false);
-      //   });
-
-      // 临时显示提示信息
-      setLoading(false);
-      Message.info('本地开发环境暂不支持许可证上传功能');
+  const handleUnbind = () => {
+    Modal.confirm({
+      title: '确认解绑授权',
+      content: '解绑后将回到社区版，确定要解绑当前授权吗？',
+      onOk: () => {
+        setUnbindLoading(true);
+        deleteApiV1License()
+          .then(() => {
+            message.success('解绑成功');
+            getApiV1License()
+              .then(res => {
+                dispatch(setLicense(res));
+              })
+              .catch(() => {
+                message.error('授权信息刷新失败，请手动刷新页面');
+              });
+          })
+          .catch(() => {
+            message.error('解绑失败，请重试');
+          })
+          .finally(() => {
+            setUnbindLoading(false);
+          });
+      },
+    });
   };
 
   return (
@@ -90,9 +109,9 @@ const AuthTypeModal = ({
           <Stack direction={'row'} alignItems={'center'}>
             <Box sx={{ width: 120, flexShrink: 0 }}>当前版本</Box>
             <Stack direction={'row'} alignItems={'center'} gap={2}>
-              <Box sx={{ fontFamily: 'GBold', minWidth: 50 }}>{curVersion}</Box>
+              <Box sx={{ fontWeight: 700, minWidth: 50 }}>{curVersion}</Box>
               {latestVersion === `v${curVersion}` ? (
-                <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>
+                <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
                   已是最新版本，无需更新
                 </Box>
               ) : (
@@ -121,10 +140,8 @@ const AuthTypeModal = ({
           <Stack direction={'row'} alignItems={'center'}>
             <Box sx={{ width: 120, flexShrink: 0 }}>产品型号</Box>
             <Stack direction={'row'} alignItems={'center'} gap={2}>
-              <Box sx={{ minWidth: 50 }}>
-                {EditionType[license.edition as keyof typeof EditionType].text}
-              </Box>
-              {license.edition === 0 ? (
+              <Box sx={{ minWidth: 50 }}>{versionInfo.label}</Box>
+              {license.edition === ConstsLicenseEdition.LicenseEditionFree ? (
                 <Stack direction={'row'} gap={2}>
                   <Button
                     size='small'
@@ -178,6 +195,22 @@ const AuthTypeModal = ({
                   </Button>
                   <Button
                     size='small'
+                    loading={unbindLoading}
+                    startIcon={
+                      <Box>
+                        <LottieIcon
+                          id='unbind'
+                          src={error}
+                          style={{ width: 16, height: 16, display: 'flex' }}
+                        />
+                      </Box>
+                    }
+                    onClick={handleUnbind}
+                  >
+                    解绑授权
+                  </Button>
+                  <Button
+                    size='small'
                     startIcon={
                       <Box>
                         <LottieIcon
@@ -197,15 +230,19 @@ const AuthTypeModal = ({
               )}
             </Stack>
           </Stack>
-          {license.edition > 0 && (
+          {license.edition! !== ConstsLicenseEdition.LicenseEditionFree && (
             <Box>
               <Stack direction={'row'} alignItems={'center'}>
                 <Box sx={{ width: 120, flexShrink: 0 }}>授权时间</Box>
-                <Box>{dayjs.unix(license.started_at).format('YYYY-MM-DD')}</Box>
+                <Box>
+                  {dayjs.unix(license.started_at!).format('YYYY-MM-DD')}
+                </Box>
                 <Box sx={{ mx: 1 }}>~</Box>
-                <Box>{dayjs.unix(license.expired_at).format('YYYY-MM-DD')}</Box>
+                <Box>
+                  {dayjs.unix(license.expired_at!).format('YYYY-MM-DD')}
+                </Box>
               </Stack>
-              {dayjs.unix(license.expired_at).diff(dayjs(), 'day') < 0 && (
+              {dayjs.unix(license.expired_at!).diff(dayjs(), 'day') < 0 && (
                 <Box
                   sx={{
                     color: 'error.main',
@@ -241,18 +278,6 @@ const AuthTypeModal = ({
           value={selected}
           change={(v: string) => setSelected(v as 'file' | 'code')}
         />
-        <TextField
-          select
-          fullWidth
-          sx={{ mt: 2 }}
-          value={authVersion}
-          onChange={e =>
-            setAuthVersion(e.target.value as 'contributor' | 'enterprise')
-          }
-        >
-          <MenuItem value='contributor'>联创版</MenuItem>
-          <MenuItem value='enterprise'>企业版</MenuItem>
-        </TextField>
         {selected === 'code' && (
           <TextField
             sx={{ mt: 2 }}
@@ -288,11 +313,11 @@ const AuthTypeModal = ({
                 }}
               >
                 <Stack direction={'row'} alignItems={'center'} gap={1}>
-                  <Icon type='icon-wenjian' />
+                  <IconWenjian sx={{ fontSize: 16 }} />
                   {file.name}
                 </Stack>
                 <IconButton onClick={() => setFile(undefined)}>
-                  <Icon type='icon-icon_tool_close' sx={{ fontSize: 16 }} />
+                  <IconIcon_tool_close sx={{ fontSize: 16 }} />
                 </IconButton>
               </Stack>
             )}
