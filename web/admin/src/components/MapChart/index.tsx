@@ -1,7 +1,8 @@
 import { TrendData } from '@/api';
 import { Box, useTheme } from '@mui/material';
-import type { ECharts } from 'echarts';
+import type { ECharts, EChartsOption } from 'echarts';
 import { useEffect, useRef, useState } from 'react';
+import { loadScript, loadScriptsInOrder } from '@/utils/loadScript';
 
 interface Props {
   map: 'china' | 'world' | string;
@@ -13,21 +14,49 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
   const theme = useTheme();
   const domWrapRef = useRef<HTMLDivElement>(null);
   const echartRef = useRef<ECharts>(null!);
-  const [loading, setLoading] = useState(true);
   const [max, setMax] = useState(0);
   const [data, setData] = useState<{ name: string; value: number }[]>([]);
+  const [resourceLoaded, setResourceLoaded] = useState(false);
 
   useEffect(() => {
+    let isUnmounted = false;
+    const load = async () => {
+      try {
+        const [echartsUrl, chinaUrl, geoUrl] = await Promise.all([
+          import('/echarts/echarts.5.4.1.min.js?url').then(
+            m => m.default as string,
+          ),
+          import('/echarts/china.js?url').then(m => m.default as string),
+          import('/geo/geo.js?url').then(m => m.default as string),
+        ]);
+        await loadScript(echartsUrl);
+        await loadScriptsInOrder([chinaUrl, geoUrl]);
+
+        if (!isUnmounted) setResourceLoaded(true);
+      } catch (e) {
+        console.error('[MapChart] 资源加载失败', e);
+      }
+    };
+    load();
+    return () => {
+      isUnmounted = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!resourceLoaded) return;
     setMax(Math.max(1, ...chartData.map(i => i.count)));
     setData(chartData.map(it => ({ name: it.name, value: it.count })));
     if (domWrapRef.current && !echartRef.current) {
-      echartRef.current = (window as any).echarts.init(domWrapRef.current);
+      type EchartsGlobal = { init: (el: HTMLDivElement) => ECharts };
+      const echartsGlobal = (window as unknown as { echarts: EchartsGlobal })
+        .echarts;
+      echartRef.current = echartsGlobal.init(domWrapRef.current);
     }
-  }, [chartData]);
+  }, [chartData, resourceLoaded]);
 
   useEffect(() => {
     if (!echartRef.current) return;
-
     const option = {
       grid: {
         top: 0,
@@ -37,7 +66,7 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
       },
       tooltip: {
         formatter: (params: any) => {
-          return `${params.name}<br />${tooltipText}: <span style='font-family: 'Gbold'>${params.value || 0}</span>`;
+          return `${params.name}<br />${tooltipText}: <span style='font-weight: 700'>${params.value || 0}</span>`;
         },
       },
       visualMap: [
@@ -72,7 +101,6 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
     };
 
     echartRef.current.setOption(option, true);
-    setLoading(false);
 
     const resize = () => {
       if (echartRef.current) {

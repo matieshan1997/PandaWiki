@@ -1,14 +1,14 @@
 @font-face {
-  font-family: 'GBold';
+  font-family: 'G';
   src: url('./gilroy-bold.otf');
-  font-weight: normal;
+  font-weight: 700;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'GMedium';
+  font-family: 'G';
   src: url('./gilroy-medium.otf');
-  font-weight: normal;
+  font-weight: 500;
   font-style: normal;
 }
 

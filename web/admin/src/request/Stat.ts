@@ -12,6 +12,13 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
+  DomainConversationDistribution,
+  DomainHotBrowser,
+  DomainHotPage,
+  DomainHotRefererHost,
+  DomainInstantCountResp,
+  DomainInstantPageResp,
+  DomainPWResponse,
   DomainResponse,
   GetApiV1StatBrowsersParams,
   GetApiV1StatConversationDistributionParams,
@@ -21,84 +28,113 @@ import {
   GetApiV1StatInstantCountParams,
   GetApiV1StatInstantPagesParams,
   GetApiV1StatRefererHostsParams,
+  V1StatCountResp,
 } from "./types";
 
 /**
- * @description GetBrowsers
+ * @description 客户端统计
  *
  * @tags stat
  * @name GetApiV1StatBrowsers
- * @summary GetBrowsers
+ * @summary 客户端统计
  * @request GET:/api/v1/stat/browsers
- * @response `200` `DomainResponse` OK
+ * @secure
+ * @response `200` `(DomainResponse & {
+    data?: DomainHotBrowser,
+
+})` OK
  */
 
 export const getApiV1StatBrowsers = (
   query: GetApiV1StatBrowsersParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: DomainHotBrowser;
+    }
+  >({
     path: `/api/v1/stat/browsers`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,
   });
 
 /**
- * @description GetConversationDistribution
+ * @description 问答来源
  *
  * @tags stat
  * @name GetApiV1StatConversationDistribution
- * @summary GetConversationDistribution
+ * @summary 问答来源
  * @request GET:/api/v1/stat/conversation_distribution
- * @response `200` `DomainResponse` OK
+ * @secure
+ * @response `200` `(DomainResponse & {
+    data?: (DomainConversationDistribution)[],
+
+})` OK
  */
 
 export const getApiV1StatConversationDistribution = (
   query: GetApiV1StatConversationDistributionParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: DomainConversationDistribution[];
+    }
+  >({
     path: `/api/v1/stat/conversation_distribution`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,
   });
 
 /**
- * @description GetCount
+ * @description 全局统计
  *
  * @tags stat
  * @name GetApiV1StatCount
- * @summary GetCount
+ * @summary 全局统计
  * @request GET:/api/v1/stat/count
- * @response `200` `DomainResponse` OK
+ * @secure
+ * @response `200` `(DomainPWResponse & {
+    data?: V1StatCountResp,
+
+})` OK
  */
 
 export const getApiV1StatCount = (
   query: GetApiV1StatCountParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainPWResponse & {
+      data?: V1StatCountResp;
+    }
+  >({
     path: `/api/v1/stat/count`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,
   });
 
 /**
- * @description GetGeoCount
+ * @description 用户地理分布
  *
  * @tags stat
  * @name GetApiV1StatGeoCount
- * @summary GetGeoCount
+ * @summary 用户地理分布
  * @request GET:/api/v1/stat/geo_count
+ * @secure
  * @response `200` `DomainResponse` OK
  */
 
@@ -110,29 +146,39 @@ export const getApiV1StatGeoCount = (
     path: `/api/v1/stat/geo_count`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,
   });
 
 /**
- * @description GetHotPages
+ * @description 热门文档
  *
  * @tags stat
  * @name GetApiV1StatHotPages
- * @summary GetHotPages
+ * @summary 热门文档
  * @request GET:/api/v1/stat/hot_pages
- * @response `200` `DomainResponse` OK
+ * @secure
+ * @response `200` `(DomainResponse & {
+    data?: (DomainHotPage)[],
+
+})` OK
  */
 
 export const getApiV1StatHotPages = (
   query: GetApiV1StatHotPagesParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: DomainHotPage[];
+    }
+  >({
     path: `/api/v1/stat/hot_pages`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,
@@ -145,17 +191,26 @@ export const getApiV1StatHotPages = (
  * @name GetApiV1StatInstantCount
  * @summary GetInstantCount
  * @request GET:/api/v1/stat/instant_count
- * @response `200` `DomainResponse` OK
+ * @secure
+ * @response `200` `(DomainResponse & {
+    data?: (DomainInstantCountResp)[],
+
+})` OK
  */
 
 export const getApiV1StatInstantCount = (
   query: GetApiV1StatInstantCountParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: DomainInstantCountResp[];
+    }
+  >({
     path: `/api/v1/stat/instant_count`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,
@@ -168,40 +223,58 @@ export const getApiV1StatInstantCount = (
  * @name GetApiV1StatInstantPages
  * @summary GetInstantPages
  * @request GET:/api/v1/stat/instant_pages
- * @response `200` `DomainResponse` OK
+ * @secure
+ * @response `200` `(DomainResponse & {
+    data?: (DomainInstantPageResp)[],
+
+})` OK
  */
 
 export const getApiV1StatInstantPages = (
   query: GetApiV1StatInstantPagesParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: DomainInstantPageResp[];
+    }
+  >({
     path: `/api/v1/stat/instant_pages`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,
   });
 
 /**
- * @description GetRefererHosts
+ * @description 来源域名
  *
  * @tags stat
  * @name GetApiV1StatRefererHosts
- * @summary GetRefererHosts
+ * @summary 来源域名
  * @request GET:/api/v1/stat/referer_hosts
- * @response `200` `DomainResponse` OK
+ * @secure
+ * @response `200` `(DomainResponse & {
+    data?: (DomainHotRefererHost)[],
+
+})` OK
  */
 
 export const getApiV1StatRefererHosts = (
   query: GetApiV1StatRefererHostsParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: DomainHotRefererHost[];
+    }
+  >({
     path: `/api/v1/stat/referer_hosts`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,

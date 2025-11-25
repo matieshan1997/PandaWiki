@@ -1,6 +1,5 @@
-import { message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { ResolvingMetadata } from 'next';
-import React from 'react';
 import { ITreeItem } from '@/assets/type';
 
 export function addOpacityToColor(color: string, opacity: number) {
@@ -106,38 +105,6 @@ export const parsePathname = (
   };
 };
 
-export class AsyncChain {
-  private methods: any[];
-  private chain: Promise<any>;
-
-  constructor(methods: any[] = []) {
-    this.methods = methods;
-    this.chain = Promise.resolve();
-  }
-
-  // 添加一个方法到链中
-  add(method: any) {
-    this.methods.push(method);
-    return this; // 支持链式调用
-  }
-
-  // 执行链式调用，每一帧执行一个方法
-  execute() {
-    this.methods.forEach(method => {
-      this.chain = this.chain.then(() => {
-        return new Promise(resolve => {
-          // 使用 requestAnimationFrame 确保在下一帧执行
-          requestAnimationFrame(() => {
-            Promise.resolve(method()).then(resolve).catch(resolve);
-          });
-        });
-      });
-    });
-
-    return this.chain;
-  }
-}
-
 /**
  * 过滤树形数据，只保留匹配搜索关键词的节点及其父节点
  */
@@ -174,6 +141,7 @@ export const filterTreeBySearch = (
         children:
           filteredChildren.length > 0 ? filteredChildren : node.children,
         defaultExpand: true, // 搜索时展开所有匹配的节点
+        expanded: true,
       };
     }
 
@@ -190,59 +158,18 @@ export const filterTreeBySearch = (
   return filtered;
 };
 
-/**
- * 高亮显示文本中的匹配部分
- */
-export const highlightText = (
-  text: string,
-  searchTerm: string,
-): React.ReactNode => {
-  if (!searchTerm.trim()) {
-    return text;
-  }
-
-  const regex = new RegExp(
-    `(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
-    'gi',
-  );
-  const parts = text.split(regex);
-
-  return parts.map((part, index) => {
-    if (regex.test(part)) {
-      return React.createElement(
-        'span',
-        {
-          key: index,
-          style: {
-            color: 'var(--mui-palette-primary-main)',
-            fontWeight: 'bold',
-          },
-        },
-        part,
-      );
+export const deepSearchFirstNode = (
+  tree: ITreeItem[],
+): ITreeItem | undefined => {
+  for (const node of tree) {
+    if (node.type === 2) {
+      return node;
     }
-    return part;
-  });
-};
-
-export function base64ToFile(base64Data: string, filename: string) {
-  // 分割Base64字符串（移除前缀）
-  const arr = base64Data.split(',');
-  const mime = arr![0].match(/:(.*?);/)?.[1]; // 提取MIME类型
-  const bstr = atob(arr![1]); // 解码Base64字符串
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-
-  // 将解码后的二进制数据存入Uint8Array
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
+    if (node.children) {
+      const result = deepSearchFirstNode(node.children);
+      if (result) {
+        return result;
+      }
+    }
   }
-
-  // 创建并返回File对象
-  return new File([u8arr], filename, { type: mime });
-}
-
-export const isValidUrl = (url: string) => {
-  const regex = /^(https?):\/\/[^\s/$.?#].[^\s]*$/i;
-  return regex.test(url);
 };

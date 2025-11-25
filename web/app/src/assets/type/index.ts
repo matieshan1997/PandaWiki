@@ -1,3 +1,11 @@
+import {
+  ConstsCopySetting,
+  ConstsWatermarkSetting,
+  DomainDisclaimerSettings,
+  DomainConversationSetting,
+  DomainWebAppLandingConfig,
+} from '@/request/types';
+
 export interface NavBtn {
   id: string;
   url: string;
@@ -45,11 +53,13 @@ export interface CatalogSetting {
 
 export interface ThemeAndStyleSetting {
   bg_image: string;
+  doc_width: string;
 }
 
 export interface KBDetail {
   name: string;
   settings: {
+    conversation_setting: DomainConversationSetting;
     title: string;
     btns: NavBtn[];
     icon: string;
@@ -67,8 +77,29 @@ export interface KBDetail {
     footer_settings?: FooterSetting | null;
     catalog_settings?: CatalogSetting | null;
     theme_and_style?: ThemeAndStyleSetting | null;
+    watermark_content?: string;
+    watermark_setting?: ConstsWatermarkSetting;
+    copy_setting?: ConstsCopySetting;
+    disclaimer_settings?: DomainDisclaimerSettings;
+    web_app_custom_style: {
+      allow_theme_switching?: boolean;
+      header_search_placeholder?: string;
+      show_brand_info?: boolean;
+      social_media_accounts?: DomainSocialMediaAccount[];
+      footer_show_intro?: boolean;
+    };
+    contribute_settings?: {
+      is_enable: boolean;
+    };
+    web_app_landing_configs: DomainWebAppLandingConfig[];
   };
-  recommend_nodes: RecommendNode[];
+}
+export interface DomainSocialMediaAccount {
+  channel?: string;
+  icon?: string;
+  link?: string;
+  text?: string;
+  phone?: string;
 }
 
 export type WidgetInfo = {
@@ -80,10 +111,21 @@ export type WidgetInfo = {
     search_placeholder: string;
     recommend_questions: string[];
     widget_bot_settings: {
-      btn_logo: string;
-      btn_text: string;
-      is_open: boolean;
-      theme_mode: 'light' | 'dark';
+      btn_logo?: string;
+      btn_text?: string;
+      btn_style?: string;
+      btn_id?: string;
+      btn_position?: string;
+      modal_position?: string;
+      is_open?: boolean;
+      recommend_node_ids?: string[];
+      recommend_questions?: string[];
+      theme_mode?: string;
+      search_mode?: string;
+      placeholder?: string;
+      disclaimer?: string;
+      copyright_hide_enabled?: boolean;
+      copyright_info?: string;
     };
   };
 };
@@ -107,7 +149,10 @@ export interface NodeDetail {
   created_at: string;
   updated_at: string;
   type: 1 | 2;
+  creator_account: string;
+  editor_account: string;
   meta: {
+    doc_width: string;
     summary: string;
     emoji?: string;
   };
@@ -124,7 +169,6 @@ export interface NodeListItem {
   created_at: string;
   updated_at: string;
   status: 1 | 2; // 1 草稿 2 发布
-  visibility: 1 | 2; // 1 私有 2 公开
 }
 
 export interface ChunkResultItem {
@@ -140,6 +184,7 @@ export interface ITreeItem {
   order?: number;
   emoji?: string;
   defaultExpand?: boolean;
+  expanded?: boolean;
   parentId?: string | null;
   summary?: string;
   children?: ITreeItem[];
@@ -148,7 +193,6 @@ export interface ITreeItem {
   canHaveChildren?: boolean;
   updated_at?: string;
   status?: 1 | 2;
-  visibility?: 1 | 2;
 }
 
 export interface ConversationItem {
@@ -158,4 +202,5 @@ export interface ConversationItem {
   update_time: string;
   message_id: string;
   source: 'history' | 'chat';
+  chunk_result: ChunkResultItem[];
 }

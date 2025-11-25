@@ -6,20 +6,26 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Comment struct {
-	ID string `json:"id" gorm:"primaryKey"`
+	ID        string         `json:"id" gorm:"primaryKey"`
+	KbID      string         `json:"kb_id"`
+	UserID    string         `json:"user_id"`
+	NodeID    string         `json:"node_id" gorm:"index"`
+	Info      CommentInfo    `json:"info" gorm:"type:jsonb"`
+	ParentID  string         `json:"parent_id"`
+	RootID    string         `json:"root_id"`
+	Content   string         `json:"content"`
+	Status    CommentStatus  `json:"status"` // status : -1 reject 0 pending 1 accept
+	PicUrls   pq.StringArray `json:"pic_urls" gorm:"type:text[];not null;default:{}"`
+	CreatedAt time.Time      `json:"created_at"`
+}
 
-	KbID      string        `json:"kb_id"`
-	UserID    string        `json:"user_id"`
-	NodeID    string        `json:"node_id" gorm:"index"`
-	Info      CommentInfo   `json:"info" gorm:"type:jsonb"`
-	ParentID  string        `json:"parent_id"`
-	RootID    string        `json:"root_id"`
-	Content   string        `json:"content"`
-	Status    CommentStatus `json:"status"` // status : -1 reject 0 pending 1 accept
-	CreatedAt time.Time     `json:"created_at"`
+func (Comment) TableName() string {
+	return "comments"
 }
 
 type CommentInfo struct {
@@ -50,13 +56,14 @@ func (d *CommentInfo) Scan(value any) error {
 	return json.Unmarshal(bytes, d)
 }
 
-// 前端请求
 type CommentReq struct {
-	NodeID   string `json:"node_id" validate:"required"`
-	Content  string `json:"content" validate:"required"`
-	UserName string `json:"user_name"`
-	ParentID string `json:"parent_id"`
-	RootID   string `json:"root_id"`
+	NodeID       string   `json:"node_id" validate:"required"`
+	Content      string   `json:"content" validate:"required"`
+	UserName     string   `json:"user_name"`
+	ParentID     string   `json:"parent_id"`
+	RootID       string   `json:"root_id"`
+	CaptchaToken string   `json:"captcha_token"`
+	PicUrls      []string `json:"pic_urls"  validate:"required"`
 }
 
 type CommentListReq struct {
@@ -83,14 +90,14 @@ type DeleteCommentListReq struct {
 }
 
 type ShareCommentListItem struct {
-	ID string `json:"id" gorm:"primaryKey"`
-
-	KbID      string      `json:"kb_id"`
-	NodeID    string      `json:"node_id" gorm:"index"`
-	Info      CommentInfo `json:"info" gorm:"type:jsonb"`
-	ParentID  string      `json:"parent_id"`
-	RootID    string      `json:"root_id"`
-	Content   string      `json:"content"`
-	IPAddress *IPAddress  `json:"ip_address" gorm:"-"` // ip地址
-	CreatedAt time.Time   `json:"created_at"`
+	ID        string         `json:"id" gorm:"primaryKey"`
+	KbID      string         `json:"kb_id"`
+	NodeID    string         `json:"node_id" gorm:"index"`
+	Info      CommentInfo    `json:"info" gorm:"type:jsonb"`
+	ParentID  string         `json:"parent_id"`
+	RootID    string         `json:"root_id"`
+	Content   string         `json:"content"`
+	PicUrls   pq.StringArray `json:"pic_urls" gorm:"type:text[]"`
+	IPAddress *IPAddress     `json:"ip_address" gorm:"-"` // ip地址
+	CreatedAt time.Time      `json:"created_at"`
 }

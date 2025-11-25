@@ -2,7 +2,22 @@ package utils
 
 import (
 	"net"
+	"strings"
+
+	"github.com/labstack/echo/v4"
 )
+
+func GetClientIPFromRemoteAddr(c echo.Context) string {
+	addr := c.Request().RemoteAddr
+	if addr == "" {
+		return ""
+	}
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return strings.TrimSpace(addr)
+	}
+	return host
+}
 
 // IsPrivateOrReservedIP checks if the given IP address is private or reserved
 func IsPrivateOrReservedIP(ipStr string) bool {

@@ -1,30 +1,30 @@
 'use client';
+import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
 import ErrorPng from '@/assets/images/500.png';
 import Footer from '@/components/footer';
-import { useStore } from '@/provider';
-import { darkTheme, lightTheme } from '@/theme';
+import { lightTheme } from '@/theme';
 import { Box, Stack } from '@mui/material';
-import { ThemeProvider } from 'ct-mui';
+import { ThemeProvider } from '@ctzhian/ui';
 import Image from 'next/image';
-import { useEffect } from 'react';
 
 export default function GlobalError({
   error,
-  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const { themeMode = 'light' } = useStore();
-
   useEffect(() => {
-    console.error(error);
+    // 只在生产环境下上报错误到 Sentry
+    if (process.env.NODE_ENV === 'production') {
+      Sentry.captureException(error);
+    }
   }, [error]);
 
   return (
     <html lang='en'>
       <body>
-        <ThemeProvider theme={themeMode === 'dark' ? darkTheme : lightTheme}>
+        <ThemeProvider theme={lightTheme}>
           <Box
             sx={{
               position: 'relative',
@@ -62,7 +62,7 @@ export default function GlobalError({
                 zIndex: 1000,
               }}
             >
-              <Footer showBrand={false} fullWidth={true} />
+              <Footer showBrand={false} />
             </Box>
           </Box>
         </ThemeProvider>

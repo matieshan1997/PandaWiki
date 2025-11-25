@@ -6,7 +6,7 @@ import Card from '@/components/Card';
 import { tableSx } from '@/constant/styles';
 import { useAppSelector } from '@/store';
 import { Box, Button, Stack } from '@mui/material';
-import { Table } from 'ct-mui';
+import { Table } from '@ctzhian/ui';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import VersionDelete from './components/VersionDelete';
@@ -112,11 +112,11 @@ const Release = () => {
         justifyContent={'space-between'}
         sx={{ p: 2, pl: 3 }}
       >
-        <Box sx={{ color: 'text.auxiliary', fontSize: 14 }}>
+        <Box sx={{ color: 'text.tertiary', fontSize: 14 }}>
           共
           <Box
             component='span'
-            sx={{ color: 'text.primary', mx: 0.5, fontFamily: 'Gbold' }}
+            sx={{ color: 'text.primary', mx: 0.5, fontWeight: 700 }}
           >
             {total}
           </Box>

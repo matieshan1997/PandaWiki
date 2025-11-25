@@ -1,19 +1,19 @@
-import { updateNodeAction } from '@/api';
-import { NodeListItem } from '@/api/type';
+import { postApiV1NodeAction } from '@/request/Node';
+import { DomainNodeListItemResp } from '@/request/types';
 import Card from '@/components/Card';
 import DragTree from '@/components/Drag/DragTree';
 import { convertToTree } from '@/utils/drag';
 import { filterEmptyFolders } from '@/utils/tree';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Stack, Typography } from '@mui/material';
-import { Message, Modal } from 'ct-mui';
+import { message, Modal } from '@ctzhian/ui';
 
 interface DocStatusProps {
   open: boolean;
-  status: 'public' | 'private';
+  status: 'delete';
   kb_id: string;
   onClose: () => void;
-  data: NodeListItem[];
+  data: DomainNodeListItemResp[];
   refresh?: () => void;
 }
 
@@ -39,12 +39,12 @@ const DocStatus = ({
   refresh,
 }: DocStatusProps) => {
   const submit = () => {
-    updateNodeAction({
-      ids: data.map(it => it.id),
+    postApiV1NodeAction({
+      ids: data.map(it => it.id!),
       kb_id,
       action: status,
     }).then(() => {
-      Message.success('更新成功');
+      message.success('更新成功');
       onClose();
       refresh?.();
     });
@@ -53,11 +53,7 @@ const DocStatus = ({
   if (!open) return <></>;
 
   const tree = filterEmptyFolders(
-    convertToTree(
-      data.filter(
-        it => it.visibility === (status === 'public' ? 1 : 2) || it.type === 1,
-      ),
-    ),
+    convertToTree(data.filter(it => it.type === 1)),
   );
 
   return (
@@ -89,7 +85,7 @@ const DocStatus = ({
           sx={{
             mt: 2,
             py: 1,
-            bgcolor: 'background.paper2',
+            bgcolor: 'background.paper3',
             '& .dndkit-drag-handle': {
               top: '-2px !important',
             },

@@ -12,16 +12,18 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
-  DomainCheckModelReq,
-  DomainCheckModelResp,
   DomainCreateModelReq,
+  DomainGetProviderModelListReq,
   DomainGetProviderModelListResp,
-  DomainModelDetailResp,
-  DomainModelListItem,
+  DomainModelModeSetting,
+  DomainPWResponse,
   DomainResponse,
+  DomainSwitchModeReq,
+  DomainSwitchModeResp,
   DomainUpdateModelReq,
-  GetApiV1ModelDetailParams,
-  GetApiV1ModelProviderSupportedParams,
+  GithubComChaitinPandaWikiDomainCheckModelReq,
+  GithubComChaitinPandaWikiDomainCheckModelResp,
+  GithubComChaitinPandaWikiDomainModelListItem,
 } from "./types";
 
 /**
@@ -77,53 +79,23 @@ export const postApiV1Model = (
  * @summary check model
  * @request POST:/api/v1/model/check
  * @response `200` `(DomainResponse & {
-    data?: DomainCheckModelResp,
+    data?: GithubComChaitinPandaWikiDomainCheckModelResp,
 
 })` OK
  */
 
 export const postApiV1ModelCheck = (
-  model: DomainCheckModelReq,
+  model: GithubComChaitinPandaWikiDomainCheckModelReq,
   params: RequestParams = {},
 ) =>
   httpRequest<
     DomainResponse & {
-      data?: DomainCheckModelResp;
+      data?: GithubComChaitinPandaWikiDomainCheckModelResp;
     }
   >({
     path: `/api/v1/model/check`,
     method: "POST",
     body: model,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description get model detail
- *
- * @tags model
- * @name GetApiV1ModelDetail
- * @summary get model detail
- * @request GET:/api/v1/model/detail
- * @response `200` `(DomainResponse & {
-    data?: DomainModelDetailResp,
-
-})` OK
- */
-
-export const getApiV1ModelDetail = (
-  query: GetApiV1ModelDetailParams,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainModelDetailResp;
-    }
-  >({
-    path: `/api/v1/model/detail`,
-    method: "GET",
-    query: query,
     type: ContentType.Json,
     format: "json",
     ...params,
@@ -136,16 +108,16 @@ export const getApiV1ModelDetail = (
  * @name GetApiV1ModelList
  * @summary get model list
  * @request GET:/api/v1/model/list
- * @response `200` `(DomainResponse & {
-    data?: DomainModelListItem,
+ * @response `200` `(DomainPWResponse & {
+    data?: GithubComChaitinPandaWikiDomainModelListItem,
 
 })` OK
  */
 
 export const getApiV1ModelList = (params: RequestParams = {}) =>
   httpRequest<
-    DomainResponse & {
-      data?: DomainModelListItem;
+    DomainPWResponse & {
+      data?: GithubComChaitinPandaWikiDomainModelListItem;
     }
   >({
     path: `/api/v1/model/list`,
@@ -156,30 +128,86 @@ export const getApiV1ModelList = (params: RequestParams = {}) =>
   });
 
 /**
+ * @description get current model mode setting including mode, API key and chat model
+ *
+ * @tags model
+ * @name GetApiV1ModelModeSetting
+ * @summary get model mode setting
+ * @request GET:/api/v1/model/mode-setting
+ * @response `200` `(DomainResponse & {
+    data?: DomainModelModeSetting,
+
+})` OK
+ */
+
+export const getApiV1ModelModeSetting = (params: RequestParams = {}) =>
+  httpRequest<
+    DomainResponse & {
+      data?: DomainModelModeSetting;
+    }
+  >({
+    path: `/api/v1/model/mode-setting`,
+    method: "GET",
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
  * @description get provider supported model list
  *
  * @tags model
- * @name GetApiV1ModelProviderSupported
+ * @name PostApiV1ModelProviderSupported
  * @summary get provider supported model list
- * @request GET:/api/v1/model/provider/supported
- * @response `200` `(DomainResponse & {
+ * @request POST:/api/v1/model/provider/supported
+ * @response `200` `(DomainPWResponse & {
     data?: DomainGetProviderModelListResp,
 
 })` OK
  */
 
-export const getApiV1ModelProviderSupported = (
-  query: GetApiV1ModelProviderSupportedParams,
-  params: RequestParams = {},
+export const postApiV1ModelProviderSupported = (
+  params: DomainGetProviderModelListReq,
+  requestParams: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainGetProviderModelListResp;
     }
   >({
     path: `/api/v1/model/provider/supported`,
-    method: "GET",
-    query: query,
+    method: "POST",
+    body: params,
+    type: ContentType.Json,
+    format: "json",
+    ...requestParams,
+  });
+
+/**
+ * @description switch model mode between manual and auto
+ *
+ * @tags model
+ * @name PostApiV1ModelSwitchMode
+ * @summary switch mode
+ * @request POST:/api/v1/model/switch-mode
+ * @response `200` `(DomainResponse & {
+    data?: DomainSwitchModeResp,
+
+})` OK
+ */
+
+export const postApiV1ModelSwitchMode = (
+  request: DomainSwitchModeReq,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: DomainSwitchModeResp;
+    }
+  >({
+    path: `/api/v1/model/switch-mode`,
+    method: "POST",
+    body: request,
     type: ContentType.Json,
     format: "json",
     ...params,

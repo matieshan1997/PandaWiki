@@ -1,4 +1,4 @@
-import { RecommendNode } from '@/api';
+import { DomainRecommendNodeListResp } from '@/request/types';
 import {
   closestCenter,
   DndContext,
@@ -21,10 +21,10 @@ import Item from './Item';
 import SortableItem from './SortableItem';
 
 interface DragRecommendProps {
-  data: RecommendNode[];
+  data: DomainRecommendNodeListResp[];
   columns?: number;
-  refresh: () => void;
-  onChange: (data: RecommendNode[]) => void;
+  refresh?: () => void;
+  onChange: (data: DomainRecommendNodeListResp[]) => void;
 }
 
 const DragRecommend: FC<DragRecommendProps> = ({
@@ -73,7 +73,7 @@ const DragRecommend: FC<DragRecommendProps> = ({
       onDragCancel={handleDragCancel}
     >
       <SortableContext
-        items={data.map(item => item.id)}
+        items={data.map(item => item.id!)}
         strategy={rectSortingStrategy}
       >
         <Box

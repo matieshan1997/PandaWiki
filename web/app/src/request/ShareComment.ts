@@ -13,7 +13,7 @@
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainCommentReq,
-  DomainResponse,
+  DomainPWResponse,
   GetShareV1CommentListParams,
   ShareShareCommentLists,
 } from "./types";
@@ -25,7 +25,7 @@ import {
  * @name PostShareV1Comment
  * @summary CreateComment
  * @request POST:/share/v1/comment
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: string,
 
 })` CommentID
@@ -36,7 +36,7 @@ export const postShareV1Comment = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: string;
     }
   >({
@@ -55,7 +55,7 @@ export const postShareV1Comment = (
  * @name GetShareV1CommentList
  * @summary GetCommentList
  * @request GET:/share/v1/comment/list
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: ShareShareCommentLists,
 
 })` CommentList
@@ -66,7 +66,7 @@ export const getShareV1CommentList = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: ShareShareCommentLists;
     }
   >({

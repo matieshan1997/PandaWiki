@@ -41,7 +41,7 @@ export default function NotFound() {
           zIndex: 1000,
         }}
       >
-        <FooterProvider showBrand={false} fullWidth={true} />
+        <FooterProvider showBrand={false} />
       </Box>
     </Box>
   );

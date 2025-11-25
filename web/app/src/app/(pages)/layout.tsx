@@ -1,17 +1,21 @@
 import StoreProvider from '@/provider';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
 import { getShareV1NodeList } from '@/request/ShareNode';
-import { Box } from '@mui/material';
 import parse, { DOMNode, domToReact } from 'html-react-parser';
 import Script from 'next/script';
+import { filterEmptyFolders, convertToTree } from '@/utils/drag';
 
 const Layout = async ({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) => {
-  const kbDetail: any = await getShareV1AppWebInfo();
-  const nodeList: any = await getShareV1NodeList();
+  const [kbDetail, nodeList]: any = await Promise.all([
+    getShareV1AppWebInfo(),
+    getShareV1NodeList(),
+  ]);
+
+  const tree = filterEmptyFolders(convertToTree(nodeList || []));
 
   const options = {
     replace(domNode: DOMNode) {
@@ -32,8 +36,8 @@ const Layout = async ({
         <>{parse(kbDetail.settings.head_code, options)}</>
       ) : null}
 
-      <StoreProvider nodeList={nodeList || []}>
-        <Box sx={{ bgcolor: 'background.paper' }}>{children}</Box>
+      <StoreProvider nodeList={nodeList || []} tree={tree}>
+        {children}
       </StoreProvider>
 
       {kbDetail?.settings?.body_code && (

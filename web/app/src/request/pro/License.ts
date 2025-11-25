@@ -13,7 +13,7 @@
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainLicenseResp,
-  DomainResponse,
+  DomainPWResponse,
   PostApiV1LicensePayload,
 } from "./types";
 
@@ -24,7 +24,7 @@ import {
  * @name GetApiV1License
  * @summary Get license
  * @request GET:/api/v1/license
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainLicenseResp,
 
 })` OK
@@ -32,7 +32,7 @@ import {
 
 export const getApiV1License = (params: RequestParams = {}) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainLicenseResp;
     }
   >({
@@ -50,7 +50,7 @@ export const getApiV1License = (params: RequestParams = {}) =>
  * @name PostApiV1License
  * @summary Upload license
  * @request POST:/api/v1/license
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainLicenseResp,
 
 })` OK
@@ -61,7 +61,7 @@ export const postApiV1License = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainLicenseResp;
     }
   >({
@@ -69,6 +69,25 @@ export const postApiV1License = (
     method: "POST",
     body: data,
     type: ContentType.FormData,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description Unbind license and delete license record
+ *
+ * @tags license
+ * @name DeleteApiV1License
+ * @summary Unbind license
+ * @request DELETE:/api/v1/license
+ * @response `200` `DomainPWResponse` OK
+ */
+
+export const deleteApiV1License = (params: RequestParams = {}) =>
+  httpRequest<DomainPWResponse>({
+    path: `/api/v1/license`,
+    method: "DELETE",
+    type: ContentType.Json,
     format: "json",
     ...params,
   });

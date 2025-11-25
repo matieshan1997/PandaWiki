@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"errors"
+
 	"github.com/labstack/echo/v4"
 
 	v1 "github.com/chaitin/panda-wiki/api/node/v1"
@@ -45,21 +47,33 @@ func NewNodeHandler(
 	group.POST("/batch_move", h.BatchMoveNode)
 
 	group.GET("/recommend_nodes", h.RecommendNodes)
+	group.POST("/restudy", h.NodeRestudy)
+
+	// node permission
+	group.GET("/permission", h.NodePermission)
+	group.PATCH("/permission/edit", h.NodePermissionEdit)
 
 	return h
 }
 
-// Create Node
+// CreateNode
 //
 //	@Summary		Create Node
 //	@Description	Create Node
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			body	body		domain.CreateNodeReq	true	"Node"
 //	@Success		200		{object}	domain.PWResponse{data=map[string]string}
 //	@Router			/api/v1/node [post]
 func (h *NodeHandler) CreateNode(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+
 	req := &domain.CreateNodeReq{}
 	if err := c.Bind(req); err != nil {
 		return h.NewResponseWithError(c, "request body is invalid", err)
@@ -67,12 +81,14 @@ func (h *NodeHandler) CreateNode(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
-	req.MaxNode = 300
-	if maxNode := c.Get("max_node"); maxNode != nil {
-		req.MaxNode = maxNode.(int)
-	}
-	id, err := h.usecase.Create(c.Request().Context(), req)
+
+	req.MaxNode = domain.GetBaseEditionLimitation(ctx).MaxNode
+
+	id, err := h.usecase.Create(c.Request().Context(), req, authInfo.UserId)
 	if err != nil {
+		if errors.Is(err, domain.ErrMaxNodeLimitReached) {
+			return h.NewResponseWithError(c, "已达到最大文档数量限制，请升级到更高版本", nil)
+		}
 		return h.NewResponseWithError(c, "create node failed", err)
 	}
 	return h.NewResponseWithData(c, map[string]any{
@@ -80,13 +96,14 @@ func (h *NodeHandler) CreateNode(c echo.Context) error {
 	})
 }
 
-// Get Node List
+// GetNodeList
 //
 //	@Summary		Get Node List
 //	@Description	Get Node List
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			params	query		domain.GetNodeListReq	true	"Params"
 //	@Success		200		{object}	domain.PWResponse{data=[]domain.NodeListItemResp}
 //	@Router			/api/v1/node/list [get]
@@ -113,8 +130,9 @@ func (h *NodeHandler) GetNodeList(c echo.Context) error {
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			param	query		v1.GetNodeDetailReq	true	"conversation id"
-//	@Success		200		{object}	domain.PWResponse{data=domain.NodeDetailResp}
+//	@Success		200		{object}	domain.PWResponse{data=v1.NodeDetailResp}
 //	@Router			/api/v1/node/detail [get]
 func (h *NodeHandler) GetNodeDetail(c echo.Context) error {
 
@@ -126,7 +144,7 @@ func (h *NodeHandler) GetNodeDetail(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 
-	node, err := h.usecase.GetNodeByKBID(c.Request().Context(), req.ID, req.KbId)
+	node, err := h.usecase.GetNodeByKBID(c.Request().Context(), req.ID, req.KbId, req.Format)
 	if err != nil {
 		return h.NewResponseWithError(c, "get node detail failed", err)
 	}
@@ -140,6 +158,7 @@ func (h *NodeHandler) GetNodeDetail(c echo.Context) error {
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			action	body		domain.NodeActionReq	true	"Action"
 //	@Success		200		{object}	domain.PWResponse{data=map[string]string}
 //	@Router			/api/v1/node/action [post]
@@ -153,25 +172,29 @@ func (h *NodeHandler) NodeAction(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	if err := h.usecase.NodeAction(ctx, req); err != nil {
-		if err == domain.ErrNodeParentIDInIDs {
-			return h.NewResponseWithError(c, "文件夹下有子文件，不能删除~", nil)
-		}
 		return h.NewResponseWithError(c, "node action failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
 }
 
-// Update Node Detail
+// UpdateNodeDetail
 //
 //	@Summary		Update Node Detail
 //	@Description	Update Node Detail
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			body	body		domain.UpdateNodeReq	true	"Node"
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/node/detail [put]
 func (h *NodeHandler) UpdateNodeDetail(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+
 	req := &domain.UpdateNodeReq{}
 	if err := c.Bind(req); err != nil {
 		return h.NewResponseWithError(c, "request body is invalid", err)
@@ -179,8 +202,8 @@ func (h *NodeHandler) UpdateNodeDetail(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
-	ctx := c.Request().Context()
-	if err := h.usecase.Update(ctx, req); err != nil {
+
+	if err := h.usecase.Update(ctx, req, authInfo.UserId); err != nil {
 		return h.NewResponseWithError(c, "update node detail failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
@@ -193,6 +216,7 @@ func (h *NodeHandler) UpdateNodeDetail(c echo.Context) error {
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			body	body		domain.MoveNodeReq	true	"Move Node"
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/node/move [post]
@@ -218,6 +242,7 @@ func (h *NodeHandler) MoveNode(c echo.Context) error {
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			body	body		domain.NodeSummaryReq	true	"Summary Node"
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/node/summary [post]
@@ -249,6 +274,7 @@ func (h *NodeHandler) SummaryNode(c echo.Context) error {
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			query	query		domain.GetRecommendNodeListReq	true	"Recommend Nodes"
 //	@Success		200		{object}	domain.PWResponse{data=[]domain.RecommendNodeListResp}
 //	@Router			/api/v1/node/recommend_nodes [get]
@@ -268,13 +294,14 @@ func (h *NodeHandler) RecommendNodes(c echo.Context) error {
 	return h.NewResponseWithData(c, nodes)
 }
 
-// Batch Move Node
+// BatchMoveNode
 //
 //	@Summary		Batch Move Node
 //	@Description	Batch Move Node
 //	@Tags			node
 //	@Accept			json
 //	@Produce		json
+//	@Security		bearerAuth
 //	@Param			body	body		domain.BatchMoveReq	true	"Batch Move Node"
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/node/batch_move [post]
@@ -290,5 +317,98 @@ func (h *NodeHandler) BatchMoveNode(c echo.Context) error {
 	if err := h.usecase.BatchMoveNode(ctx, req); err != nil {
 		return h.NewResponseWithError(c, "batch move node failed", err)
 	}
+	return h.NewResponseWithData(c, nil)
+}
+
+// NodePermission 文档授权信息获取
+//
+//	@Tags			NodePermission
+//	@Summary		文档授权信息获取
+//	@Description	文档授权信息获取
+//	@ID				v1-NodePermission
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			param	query		v1.NodePermissionReq	true	"para"
+//	@Success		200		{object}	domain.Response{data=v1.NodePermissionResp}
+//	@Router			/api/v1/node/permission [get]
+func (h *NodeHandler) NodePermission(c echo.Context) error {
+	var req v1.NodePermissionReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	ctx := c.Request().Context()
+	release, err := h.usecase.GetNodePermissionsByID(ctx, req.ID, req.KbId)
+	if err != nil {
+		return h.NewResponseWithError(c, "get node permission detail failed", err)
+	}
+	return h.NewResponseWithData(c, release)
+}
+
+// NodePermissionEdit 文档授权信息更新
+//
+//	@Tags			NodePermission
+//	@Summary		文档授权信息更新
+//	@Description	文档授权信息更新
+//	@ID				v1-NodePermissionEdit
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			param	body		v1.NodePermissionEditReq	true	"para"
+//	@Success		200		{object}	domain.Response{data=v1.NodePermissionEditResp}
+//	@Router			/api/v1/node/permission/edit [patch]
+func (h *NodeHandler) NodePermissionEdit(c echo.Context) error {
+	var req v1.NodePermissionEditReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	if err := h.usecase.ValidateNodePermissionsEdit(req, consts.GetLicenseEdition(c)); err != nil {
+		return h.NewResponseWithError(c, "validate node permission failed", err)
+	}
+
+	ctx := c.Request().Context()
+	err := h.usecase.NodePermissionsEdit(ctx, req)
+	if err != nil {
+		return h.NewResponseWithError(c, "update node permission failed", err)
+	}
+	return h.NewResponseWithData(c, nil)
+}
+
+// NodeRestudy 文档重新学习
+//
+//	@Tags			Node
+//	@Summary		文档重新学习
+//	@Description	文档重新学习
+//	@ID				v1-NodeRestudy
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			param	body		v1.NodeRestudyReq	true	"para"
+//	@Success		200		{object}	domain.Response{data=v1.NodeRestudyResp}
+//	@Router			/api/v1/node/restudy [post]
+func (h *NodeHandler) NodeRestudy(c echo.Context) error {
+	var req v1.NodeRestudyReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	if err := h.usecase.NodeRestudy(c.Request().Context(), &req); err != nil {
+		return h.NewResponseWithError(c, "node restudy failed", err)
+	}
+
 	return h.NewResponseWithData(c, nil)
 }

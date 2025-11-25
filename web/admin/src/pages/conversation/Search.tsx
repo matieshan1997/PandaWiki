@@ -1,7 +1,7 @@
 import { useURLSearchParams } from '@/hooks';
 import { IconButton, InputAdornment, Stack, TextField } from '@mui/material';
-import { Icon } from 'ct-mui';
 import { useState } from 'react';
+import { IconIcon_tool_close } from '@panda-wiki/icons';
 
 const Search = () => {
   const [searchParams, setSearchParams] = useURLSearchParams();
@@ -37,9 +37,8 @@ const Search = () => {
                 }}
                 size='small'
               >
-                <Icon
-                  type='icon-icon_tool_close'
-                  sx={{ fontSize: 14, color: 'text.auxiliary' }}
+                <IconIcon_tool_close
+                  sx={{ fontSize: 14, color: 'text.tertiary' }}
                 />
               </IconButton>
             </InputAdornment>
@@ -70,9 +69,8 @@ const Search = () => {
                 }}
                 size='small'
               >
-                <Icon
-                  type='icon-icon_tool_close'
-                  sx={{ fontSize: 14, color: 'text.auxiliary' }}
+                <IconIcon_tool_close
+                  sx={{ fontSize: 14, color: 'text.tertiary' }}
                 />
               </IconButton>
             </InputAdornment>

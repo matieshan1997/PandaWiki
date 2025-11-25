@@ -14,19 +14,19 @@ class SSEClient<T> {
   private controller: AbortController;
   private reader: ReadableStreamDefaultReader<Uint8Array> | null;
   private textDecoder: TextDecoder;
-  private buffer: string;
 
   constructor(private options: SSEClientOptions) {
     this.controller = new AbortController();
     this.reader = null;
     this.textDecoder = new TextDecoder();
-    this.buffer = '';
   }
 
   public subscribe(body: BodyInit, onMessage: SSECallback<T>) {
     this.controller.abort();
     this.controller = new AbortController();
     const { url, headers, onOpen, onError, onComplete } = this.options;
+
+    const token = localStorage.getItem('panda_wiki_token') || '';
 
     const timeoutDuration = 300000;
     const timeoutId = setTimeout(() => {
@@ -39,6 +39,7 @@ class SSEClient<T> {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        Authorization: `Bearer ${token}`,
         ...headers,
       },
       body,
@@ -83,42 +84,14 @@ class SSEClient<T> {
   ) {
     if (!chunk) return;
 
-    this.buffer += this.textDecoder.decode(chunk, { stream: true });
-    const lines = this.buffer.split('\n');
-
-    let currentData = '';
-    let isDataLine = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith('data: ')) {
-        if (isDataLine) {
-          currentData += '\n';
-        }
-        currentData += line.slice(6);
-        isDataLine = true;
-      } else if (line === '') {
-        if (isDataLine) {
-          try {
-            const data = JSON.parse(currentData) as T;
-            callback(data);
-          } catch (error) {
-            console.error(error);
-            this.options.onError?.(new Error('Failed to parse SSE data'));
-          }
-          currentData = '';
-          isDataLine = false;
-        }
-      }
-    }
-
-    this.buffer = lines[lines.length - 1];
+    const buffer = this.textDecoder.decode(chunk, { stream: true });
+    callback(buffer as T);
   }
 
   public unsubscribe() {
     this.controller.abort();
     if (this.reader) {
-      this.reader.cancel();
+      this.reader.cancel().catch(() => {});
     }
     this.options.onComplete?.();
   }

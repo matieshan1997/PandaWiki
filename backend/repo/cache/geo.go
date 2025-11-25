@@ -6,18 +6,23 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/store/cache"
+	"github.com/chaitin/panda-wiki/store/pg"
+	"github.com/chaitin/panda-wiki/utils"
 )
 
 type GeoRepo struct {
 	cache  *cache.Cache
+	db     *pg.DB
 	logger *log.Logger
 }
 
-func NewGeoCache(cache *cache.Cache, logger *log.Logger) *GeoRepo {
+func NewGeoCache(cache *cache.Cache, db *pg.DB, logger *log.Logger) *GeoRepo {
 	return &GeoRepo{
 		cache:  cache,
+		db:     db,
 		logger: logger.WithModule("repo.cache.geo"),
 	}
 }
@@ -62,5 +67,25 @@ func (r *GeoRepo) GetLast24HourGeo(ctx context.Context, kbID string) (map[string
 			counts[field] += valueInt
 		}
 	}
+	return counts, nil
+}
+
+func (r *GeoRepo) GetGeoByHour(ctx context.Context, kbID string, startHour int64) (map[string]int64, error) {
+	counts := make(map[string]int64)
+
+	geoCounts := make([]domain.MapStrInt64, 0)
+	if err := r.db.WithContext(ctx).Model(&domain.StatPageHour{}).
+		Select("geo_count").
+		Where("kb_id = ?", kbID).
+		Where("hour >= ? and hour < ?", utils.GetTimeHourOffset(-startHour), utils.GetTimeHourOffset(-24)).
+		Pluck("geo_count", &geoCounts).Error; err != nil {
+		return nil, err
+	}
+	for i := range geoCounts {
+		for k, v := range geoCounts[i] {
+			counts[k] += v
+		}
+	}
+
 	return counts, nil
 }

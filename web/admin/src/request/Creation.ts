@@ -11,7 +11,30 @@
  */
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
-import { DomainTextReq } from "./types";
+import { DomainCompleteReq, DomainTextReq } from "./types";
+
+/**
+ * @description Tab-based document completion similar to AI coding's FIM (Fill in Middle)
+ *
+ * @tags creation
+ * @name PostApiV1CreationTabComplete
+ * @summary Tab-based document completion
+ * @request POST:/api/v1/creation/tab-complete
+ * @response `200` `string` success
+ */
+
+export const postApiV1CreationTabComplete = (
+  body: DomainCompleteReq,
+  params: RequestParams = {},
+) =>
+  httpRequest<string>({
+    path: `/api/v1/creation/tab-complete`,
+    method: "POST",
+    body: body,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
 
 /**
  * @description Text creation

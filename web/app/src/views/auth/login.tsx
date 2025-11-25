@@ -9,6 +9,7 @@ import {
   postShareProV1AuthOauth,
   postShareProV1AuthWecom,
 } from '@/request/pro/ShareAuth';
+import { postShareV1AuthGithub } from '@/request/ShareAuth';
 import {
   getShareV1AuthGet,
   postShareV1AuthLoginSimple,
@@ -16,22 +17,24 @@ import {
 import { getShareV1NodeList } from '@/request/ShareNode';
 import { clearCookie } from '@/utils/cookie';
 
+import {
+  IconKoulingrenzheng,
+  IconLDAP,
+  IconMima,
+  IconZhanghao,
+  IconFeishu,
+} from '@panda-wiki/icons';
+
 import Logo from '@/assets/images/logo.png';
 import { FooterProvider } from '@/components/footer';
-import {
-  IconCAS,
-  IconDingDing,
-  IconFeishu,
-  IconLDAP,
-  IconLock,
-  IconOAuth,
-  IconGitHub,
-  IconPassword,
-  IconQiyeweixin,
-  IconUser,
-} from '@/components/icons';
+import { IconCAS, IconDingDing, IconQiyeweixin } from '@/components/icons';
+import { IconGitHub1 } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
-import { ConstsSourceType, DomainAuthType } from '@/request/types';
+import {
+  ConstsSourceType,
+  ConstsAuthType,
+  ConstsLicenseEdition,
+} from '@/request/types';
 import {
   Box,
   Button,
@@ -40,22 +43,38 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+
+function isWeComByUA() {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  const ua = navigator.userAgent.toLowerCase();
+  // 1. 必须包含 MicroMessenger (表示微信/企业微信内核)
+  // 2. 必须包含 wxwork 或 wecom (表示企业微信)
+  return (
+    ua.includes('micromessenger') &&
+    (ua.includes('wxwork') || ua.includes('wecom'))
+  );
+}
 
 export default function Login() {
   const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authType, setAuthType] = useState<DomainAuthType>();
+  const [authType, setAuthType] = useState<ConstsAuthType>();
+  const [licenseEdition, setLicenseEdition] = useState<ConstsLicenseEdition>();
   const [sourceType, setSourceType] = useState<ConstsSourceType>();
   const { kbDetail, themeMode, mobile = false, setNodeList } = useStore();
   const redirectUrl =
-    window.location.origin +
-    decodeURIComponent(searchParams.get('redirect') || '');
+    typeof window !== 'undefined'
+      ? window.location.origin +
+        decodeURIComponent(searchParams.get('redirect') || '')
+      : '';
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -84,7 +103,7 @@ export default function Login() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       if (
-        authType === DomainAuthType.AuthTypeEnterprise &&
+        authType === ConstsAuthType.AuthTypeEnterprise &&
         sourceType === ConstsSourceType.SourceTypeLDAP
       ) {
         // For LDAP auth, check if both username and password are filled before submitting
@@ -119,6 +138,7 @@ export default function Login() {
     clearCookie();
     postShareProV1AuthWecom({
       redirect_url: redirectUrl,
+      is_app: isWeComByUA(),
     }).then(res => {
       window.location.href = res.url || '/';
     });
@@ -135,11 +155,19 @@ export default function Login() {
 
   const handleGitHubLogin = () => {
     clearCookie();
-    postShareProV1AuthGithub({
-      redirect_url: redirectUrl,
-    }).then(res => {
-      window.location.href = res.url || '/';
-    });
+    if (licenseEdition === ConstsLicenseEdition.LicenseEditionFree) {
+      postShareV1AuthGithub({
+        redirect_url: redirectUrl,
+      }).then(res => {
+        window.location.href = res.url || '/';
+      });
+    } else {
+      postShareProV1AuthGithub({
+        redirect_url: redirectUrl,
+      }).then(res => {
+        window.location.href = res.url || '/';
+      });
+    }
   };
 
   const handleCASLogin = () => {
@@ -174,7 +202,8 @@ export default function Login() {
     getShareV1AuthGet({}).then(res => {
       setAuthType(res?.auth_type);
       setSourceType(res?.source_type);
-      if (res?.auth_type === DomainAuthType.AuthTypeNull) {
+      setLicenseEdition(res?.license_edition);
+      if (res?.auth_type === ConstsAuthType.AuthTypeNull) {
         window.open(redirectUrl, '_self');
       }
     });
@@ -224,7 +253,7 @@ export default function Login() {
                 {kbDetail?.settings?.title}
               </Box>
             </Stack>
-            {authType === DomainAuthType.AuthTypeSimple && (
+            {authType === ConstsAuthType.AuthTypeSimple && (
               <>
                 <TextField
                   fullWidth
@@ -239,7 +268,7 @@ export default function Login() {
                     input: {
                       startAdornment: (
                         <InputAdornment position='start'>
-                          <IconLock
+                          <IconKoulingrenzheng
                             sx={{ fontSize: 16, width: 24, height: 16 }}
                           />
                         </InputAdornment>
@@ -278,7 +307,7 @@ export default function Login() {
               </>
             )}
 
-            {authType === DomainAuthType.AuthTypeEnterprise && (
+            {authType === ConstsAuthType.AuthTypeEnterprise && (
               <>
                 {sourceType === ConstsSourceType.SourceTypeDingTalk && (
                   <IconButton onClick={handleDingTalkLogin}>
@@ -310,7 +339,7 @@ export default function Login() {
                     fullWidth
                     variant='contained'
                     onClick={handleGitHubLogin}
-                    startIcon={<IconGitHub />}
+                    startIcon={<IconGitHub1 />}
                     sx={{ height: '50px', fontSize: 16 }}
                   >
                     登录
@@ -360,7 +389,7 @@ export default function Login() {
                               input: {
                                 startAdornment: (
                                   <InputAdornment position='start'>
-                                    <IconUser
+                                    <IconZhanghao
                                       sx={{
                                         fontSize: 16,
                                         width: 24,
@@ -385,7 +414,7 @@ export default function Login() {
                               input: {
                                 startAdornment: (
                                   <InputAdornment position='start'>
-                                    <IconPassword
+                                    <IconMima
                                       sx={{
                                         fontSize: 16,
                                         width: 24,
@@ -452,14 +481,7 @@ export default function Login() {
           </Stack>
         </Box>
       </Box>
-      <Box
-        sx={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-        }}
-      >
-        <FooterProvider showBrand={false} />
-      </Box>
+      <FooterProvider showBrand={false} />
     </>
   );
 }

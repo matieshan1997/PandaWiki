@@ -1,18 +1,21 @@
-import { batchMoveNode, ITreeItem, NodeListItem } from '@/api';
+import { ITreeItem } from '@/api';
 import Card from '@/components/Card';
 import DragTree from '@/components/Drag/DragTree';
+import { postApiV1NodeBatchMove } from '@/request/Node';
+import { DomainNodeListItemResp } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { convertToTree } from '@/utils/drag';
+import { message, Modal } from '@ctzhian/ui';
 import { Box, Checkbox, Stack } from '@mui/material';
-import { Icon, Message, Modal } from 'ct-mui';
 import { useEffect, useState } from 'react';
+import { IconWenjianjiaKai } from '@panda-wiki/icons';
 
 interface DocDeleteProps {
   open: boolean;
   onClose: () => void;
-  data: NodeListItem[];
-  selected: NodeListItem[];
-  refresh?: () => void;
+  data: DomainNodeListItemResp[];
+  selected: DomainNodeListItemResp[];
+  onMoved?: (payload: { ids: string[]; parentId: string }) => void;
 }
 
 const MoveDocs = ({
@@ -20,7 +23,7 @@ const MoveDocs = ({
   onClose,
   data,
   selected,
-  refresh,
+  onMoved,
 }: DocDeleteProps) => {
   const { kb_id } = useAppSelector(state => state.config);
   const [tree, setTree] = useState<ITreeItem[]>([]);
@@ -28,22 +31,22 @@ const MoveDocs = ({
 
   const handleOk = () => {
     if (folderIds.length === 0) {
-      Message.error('请选择移动路径');
+      message.error('请选择移动路径');
       return;
     }
-    let ids = selected.filter(it => it.type === 1).map(it => it.id);
+    const ids = selected.filter(it => it.type === 1).map(it => it.id!);
     selected
       .filter(it => it.type === 2)
       .forEach(it => {
-        if (!ids.includes(it.parent_id)) {
-          ids.push(it.id);
+        if (!ids.includes(it.parent_id!)) {
+          ids.push(it.id!);
         }
       });
     const parent_id = folderIds.includes('root') ? '' : folderIds[0];
-    batchMoveNode({ ids, parent_id, kb_id }).then(() => {
-      Message.success('移动成功');
+    postApiV1NodeBatchMove({ ids, parent_id, kb_id }).then(() => {
+      message.success('移动成功');
       onClose();
-      refresh?.();
+      onMoved?.({ ids, parentId: parent_id });
     });
   };
 
@@ -61,16 +64,13 @@ const MoveDocs = ({
     <Modal title='移动文档' open={open} onCancel={onClose} onOk={handleOk}>
       <Box sx={{ fontSize: 14, mb: 1, color: 'text.secondary' }}>
         已选中
-        <Box
-          component={'span'}
-          sx={{ fontFamily: 'Gbold', color: 'primary.main' }}
-        >
+        <Box component={'span'} sx={{ fontWeight: 700, color: 'primary.main' }}>
           {' '}
           {selected.length}{' '}
         </Box>
         个文档/文件夹，移动到
       </Box>
-      <Card sx={{ bgcolor: 'background.paper2', p: 1 }}>
+      <Card sx={{ bgcolor: 'background.paper3', p: 1 }}>
         <Stack
           direction={'row'}
           alignItems={'center'}
@@ -84,7 +84,7 @@ const MoveDocs = ({
               setFolderIds(folderIds.includes('root') ? [] : ['root']);
             }}
           />
-          <Icon type={'icon-wenjianjia-kai'} />
+          <IconWenjianjiaKai sx={{ fontSize: 14 }} />
           <Box>根路径</Box>
         </Stack>
         <DragTree

@@ -36,7 +36,7 @@ func (r *AppRepository) GetAppDetail(ctx context.Context, id string) (*domain.Ap
 	return app, nil
 }
 
-func (r *AppRepository) UpdateApp(ctx context.Context, id string, appRequest *domain.UpdateAppReq) error {
+func (r *AppRepository) UpdateApp(ctx context.Context, id, kbId string, appRequest *domain.UpdateAppReq) error {
 	updateMap := map[string]any{}
 	if appRequest.Name != nil {
 		updateMap["name"] = appRequest.Name
@@ -44,11 +44,11 @@ func (r *AppRepository) UpdateApp(ctx context.Context, id string, appRequest *do
 	if appRequest.Settings != nil {
 		updateMap["settings"] = appRequest.Settings
 	}
-	return r.db.WithContext(ctx).Model(&domain.App{}).Where("id = ?", id).Updates(updateMap).Error
+	return r.db.WithContext(ctx).Model(&domain.App{}).Where("id = ? and kb_id = ?", id, kbId).Updates(updateMap).Error
 }
 
-func (r *AppRepository) DeleteApp(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).Delete(&domain.App{}, "id = ?", id).Error
+func (r *AppRepository) DeleteApp(ctx context.Context, id, kbId string) error {
+	return r.db.WithContext(ctx).Delete(&domain.App{}, "id = ? and kb_id = ?", id, kbId).Error
 }
 
 func (r *AppRepository) GetOrCreateAppByKBIDAndType(ctx context.Context, kbID string, appType domain.AppType) (*domain.App, error) {

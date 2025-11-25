@@ -12,7 +12,7 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
-  DomainResponse,
+  DomainPWResponse,
   GetShareProV1OpenapiCasCallbackParams,
   GetShareProV1OpenapiDingtalkCallbackParams,
   GetShareProV1OpenapiFeishuCallbackParams,
@@ -34,7 +34,7 @@ import {
  * @name GetShareProV1OpenapiCasCallback
  * @summary CAS回调
  * @request GET:/share/pro/v1/openapi/cas/callback
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: GithubComChaitinPandaWikiProApiShareV1CASCallbackResp,
 
 })` OK
@@ -45,7 +45,7 @@ export const getShareProV1OpenapiCasCallback = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: GithubComChaitinPandaWikiProApiShareV1CASCallbackResp;
     }
   >({
@@ -64,7 +64,7 @@ export const getShareProV1OpenapiCasCallback = (
  * @name GetShareProV1OpenapiDingtalkCallback
  * @summary dingtalk回调
  * @request GET:/share/pro/v1/openapi/dingtalk/callback
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: GithubComChaitinPandaWikiProApiShareV1DingtalkCallbackResp,
 
 })` OK
@@ -75,7 +75,7 @@ export const getShareProV1OpenapiDingtalkCallback = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: GithubComChaitinPandaWikiProApiShareV1DingtalkCallbackResp;
     }
   >({
@@ -94,7 +94,7 @@ export const getShareProV1OpenapiDingtalkCallback = (
  * @name GetShareProV1OpenapiFeishuCallback
  * @summary feishu回调
  * @request GET:/share/pro/v1/openapi/feishu/callback
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: GithubComChaitinPandaWikiProApiShareV1FeishuCallbackResp,
 
 })` OK
@@ -105,7 +105,7 @@ export const getShareProV1OpenapiFeishuCallback = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: GithubComChaitinPandaWikiProApiShareV1FeishuCallbackResp;
     }
   >({
@@ -124,7 +124,7 @@ export const getShareProV1OpenapiFeishuCallback = (
  * @name GetShareProV1OpenapiGithubCallback
  * @summary GitHub回调
  * @request GET:/share/pro/v1/openapi/github/callback
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: GithubComChaitinPandaWikiProApiShareV1GitHubCallbackResp,
 
 })` OK
@@ -135,7 +135,7 @@ export const getShareProV1OpenapiGithubCallback = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: GithubComChaitinPandaWikiProApiShareV1GitHubCallbackResp;
     }
   >({
@@ -154,7 +154,7 @@ export const getShareProV1OpenapiGithubCallback = (
  * @name GetShareProV1OpenapiOauthCallback
  * @summary OAuth回调
  * @request GET:/share/pro/v1/openapi/oauth/callback
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: GithubComChaitinPandaWikiProApiShareV1OAuthCallbackResp,
 
 })` OK
@@ -165,7 +165,7 @@ export const getShareProV1OpenapiOauthCallback = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: GithubComChaitinPandaWikiProApiShareV1OAuthCallbackResp;
     }
   >({
@@ -184,7 +184,7 @@ export const getShareProV1OpenapiOauthCallback = (
  * @name GetShareProV1OpenapiWecomCallback
  * @summary 企业微信回调
  * @request GET:/share/pro/v1/openapi/wecom/callback
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: GithubComChaitinPandaWikiProApiShareV1WecomCallbackResp,
 
 })` OK
@@ -195,7 +195,7 @@ export const getShareProV1OpenapiWecomCallback = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: GithubComChaitinPandaWikiProApiShareV1WecomCallbackResp;
     }
   >({

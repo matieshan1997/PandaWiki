@@ -1,24 +1,14 @@
 import HelpCenter from '@/assets/json/help-center.json';
 import IconUpgrade from '@/assets/json/upgrade.json';
 import LottieIcon from '@/components/LottieIcon';
-import { EditionType } from '@/constant/enums';
-import { useAppSelector } from '@/store';
 import { Box, Stack, Tooltip } from '@mui/material';
 import { useEffect, useState } from 'react';
 import packageJson from '../../../package.json';
 import AuthTypeModal from './AuthTypeModal';
-import freeVersion from '@/assets/images/free-version.png';
-import enterpriseVersion from '@/assets/images/enterprise-version.png';
-import contributorVersion from '@/assets/images/contributor-version.png';
-
-const versionMap = {
-  0: freeVersion,
-  1: contributorVersion,
-  2: enterpriseVersion,
-};
+import { useVersionInfo } from '@/hooks';
 
 const Version = () => {
-  const { license } = useAppSelector(state => state.config);
+  const versionInfo = useVersionInfo();
   const curVersion = import.meta.env.VITE_APP_VERSION || packageJson.version;
   const [latestVersion, setLatestVersion] = useState<string | undefined>(
     undefined,
@@ -56,15 +46,12 @@ const Version = () => {
         onClick={() => setTypeOpen(true)}
       >
         <Stack direction={'row'} alignItems='center' gap={0.5}>
-          <Box sx={{ width: 30, color: 'text.auxiliary' }}>型号</Box>
-          <img
-            src={versionMap[license.edition]}
-            style={{ height: 13, marginTop: -1 }}
-          />
-          {EditionType[license.edition as keyof typeof EditionType].text}
+          <Box sx={{ width: 30, color: 'text.tertiary' }}>型号</Box>
+          <img src={versionInfo.image} style={{ height: 13, marginTop: -1 }} />
+          {versionInfo.label}
         </Stack>
         <Stack direction={'row'} gap={0.5}>
-          <Box sx={{ width: 30, color: 'text.auxiliary' }}>版本</Box>
+          <Box sx={{ width: 30, color: 'text.tertiary' }}>版本</Box>
           <Box sx={{ whiteSpace: 'nowrap' }}>{curVersion}</Box>
           {latestVersion !== `v${curVersion}` && (
             <Tooltip

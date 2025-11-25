@@ -5,7 +5,7 @@ import (
 
 	v1 "github.com/chaitin/panda-wiki/api/kb/v1"
 	"github.com/chaitin/panda-wiki/consts"
-	_ "github.com/chaitin/panda-wiki/domain"
+	"github.com/chaitin/panda-wiki/domain"
 )
 
 // KBUserList
@@ -56,8 +56,8 @@ func (h *KnowledgeBaseHandler) KBUserInvite(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 
-	if consts.GetLicenseEdition(c) != consts.LicenseEditionEnterprise && req.Perm != consts.UserKBPermissionFullControl {
-		return h.NewResponseWithError(c, "非企业版本只能使用完全控制权限", nil)
+	if !domain.GetBaseEditionLimitation(c.Request().Context()).AllowAdminPerm && req.Perm != consts.UserKBPermissionFullControl {
+		return h.NewResponseWithError(c, "当前版本不支持管理员分权控制", nil)
 	}
 
 	err := h.usecase.KBUserInvite(c.Request().Context(), req)
@@ -88,16 +88,11 @@ func (h *KnowledgeBaseHandler) KBUserUpdate(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 
-	if consts.GetLicenseEdition(c) != consts.LicenseEditionEnterprise && req.Perm != consts.UserKBPermissionFullControl {
-		return h.NewResponseWithError(c, "非企业版本只能使用完全控制权限", nil)
+	if !domain.GetBaseEditionLimitation(c.Request().Context()).AllowAdminPerm && req.Perm != consts.UserKBPermissionFullControl {
+		return h.NewResponseWithError(c, "当前版本不支持管理员分权控制", nil)
 	}
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "not found user", nil)
-	}
-
-	err := h.usecase.UpdateUserKB(c.Request().Context(), req, userId)
+	err := h.usecase.UpdateUserKB(c.Request().Context(), req)
 	if err != nil {
 		return h.NewResponseWithError(c, "update user kb permission failed", err)
 	}
@@ -126,11 +121,7 @@ func (h *KnowledgeBaseHandler) KBUserDelete(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "not found user", nil)
-	}
-	err := h.usecase.KBUserDelete(c.Request().Context(), req, userId)
+	err := h.usecase.KBUserDelete(c.Request().Context(), req)
 	if err != nil {
 		return h.NewResponseWithError(c, "remove user from kb failed", err)
 	}

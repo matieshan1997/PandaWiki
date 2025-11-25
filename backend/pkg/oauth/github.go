@@ -4,27 +4,57 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 
 	"golang.org/x/oauth2"
 
+	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/log"
 )
 
 const (
-	githubAuthorizeURL = "https://github.com/login/oauth/authorize"
-	githubTokenURL     = "https://github.com/login/oauth/access_token"
-	githubUserInfoURL  = "https://api.github.com/user"
-	githubUserEmailURL = "https://api.github.com/user/emails"
-	githubCallbackPath = "/share/pro/v1/openapi/github/callback"
+	githubAuthorizeURL    = "https://github.com/login/oauth/authorize"
+	githubTokenURL        = "https://github.com/login/oauth/access_token"
+	githubUserInfoURL     = "https://api.github.com/user"
+	githubUserEmailURL    = "https://api.github.com/user/emails"
+	githubCallbackPathPro = "/share/pro/v1/openapi/github/callback"
+	githubCallbackPath    = "/share/v1/openapi/github/callback"
 )
 
-func NewGithubClient(ctx context.Context, logger *log.Logger, clientID, clientSecret, redirectURI string) (*Client, error) {
+func NewGithubClient(ctx context.Context, logger *log.Logger, clientID, clientSecret, redirectURI, proxyURL string) (*Client, error) {
+	licenseEdition, ok := ctx.Value(consts.ContextKeyEdition).(consts.LicenseEdition)
+	if !ok {
+		return nil, fmt.Errorf("failed to retrieve license edition from context")
+	}
 
 	redirectURL, _ := url.Parse(redirectURI)
 	redirectURL.Path = githubCallbackPath
+
+	if licenseEdition > consts.LicenseEditionFree {
+		redirectURL.Path = githubCallbackPathPro
+	}
+
 	redirectURI = redirectURL.String()
+
+	var httpClient *http.Client
+	if proxyURL != "" {
+		proxyURLParsed, err := url.Parse(proxyURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid proxy URL: %w", err)
+		}
+
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(proxyURLParsed),
+			},
+		}
+		logger.Info("GitHub OAuth client configured with proxy", log.String("proxy", proxyURL))
+	} else {
+		httpClient = http.DefaultClient
+	}
 
 	config := Config{
 		ClientID:     clientID,
@@ -40,25 +70,39 @@ func NewGithubClient(ctx context.Context, logger *log.Logger, clientID, clientSe
 		RedirectURI:  redirectURI,
 	}
 
-	return &Client{
-		ctx:    ctx,
-		logger: logger.WithModule("pkg.oauth"),
-		oauth: &oauth2.Config{
-			ClientID:     config.ClientID,
-			ClientSecret: config.ClientSecret,
-			Endpoint: oauth2.Endpoint{
-				AuthURL:  config.AuthorizeURL,
-				TokenURL: config.TokenURL,
-			},
-			RedirectURL: redirectURI,
-			Scopes:      config.Scopes,
+	oauthConfig := &oauth2.Config{
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  config.AuthorizeURL,
+			TokenURL: config.TokenURL,
 		},
-		config: &config,
+		RedirectURL: redirectURI,
+		Scopes:      config.Scopes,
+	}
+
+	if proxyURL != "" {
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
+	}
+
+	return &Client{
+		ctx:        ctx,
+		logger:     logger.WithModule("pkg.oauth"),
+		oauth:      oauthConfig,
+		httpClient: httpClient,
+		config:     &config,
 	}, nil
 }
 
 func (c *Client) GetGithubPrimaryEmail(token *oauth2.Token) (string, error) {
-	client := c.oauth.Client(c.ctx, token)
+	var client *http.Client
+	if c.httpClient != nil {
+		ctx := context.WithValue(c.ctx, oauth2.HTTPClient, c.httpClient)
+		client = c.oauth.Client(ctx, token)
+	} else {
+		client = c.oauth.Client(c.ctx, token)
+	}
+
 	type Email struct {
 		Email    string `json:"email"`
 		Primary  bool   `json:"primary"`

@@ -1,15 +1,15 @@
-import { DomainConversationListItem } from '@/request/types';
-import { getApiV1Conversation } from '@/request/Conversation';
 import Logo from '@/assets/images/logo.png';
 import NoData from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import { AppType } from '@/constant/enums';
 import { tableSx } from '@/constant/styles';
 import { useURLSearchParams } from '@/hooks';
+import { getApiV1Conversation } from '@/request/Conversation';
+import { DomainConversationListItem } from '@/request/types';
 import { useAppSelector } from '@/store';
+import { Ellipsis, Icon, Table } from '@ctzhian/ui';
+import { ColumnType } from '@ctzhian/ui/dist/Table';
 import { Box, Stack } from '@mui/material';
-import { Ellipsis, Icon, Table } from 'ct-mui';
-import { ColumnType } from 'ct-mui/dist/Table';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import Detail from './Detail';
@@ -20,7 +20,7 @@ const Conversation = () => {
   const [searchParams, setSearchParams] = useURLSearchParams();
   const conversion_id = searchParams.get('conversion_id') || '';
   const page = Number(searchParams.get('page') || '1');
-  const pageSize = Number(searchParams.get('page_size') || '20');
+  const pageSize = Number(searchParams.get('pageSize') || '20');
   const subject = searchParams.get('subject') || '';
   const remoteIp = searchParams.get('remote_ip') || '';
   const [data, setData] = useState<DomainConversationListItem[]>([]);
@@ -34,15 +34,12 @@ const Conversation = () => {
       title: '问题',
       render: (text: string, record) => {
         const isGroupChat = record.info?.user_info?.from === 1;
+        const AppIcon =
+          AppType[record.app_type as keyof typeof AppType]?.icon || '';
         return (
           <>
             <Stack direction={'row'} alignItems={'center'} gap={1}>
-              <Icon
-                sx={{ fontSize: 12 }}
-                type={
-                  AppType[record.app_type as keyof typeof AppType]?.icon || ''
-                }
-              />
+              <AppIcon sx={{ fontSize: 12 }}></AppIcon>
               <Ellipsis
                 className='primary-color'
                 sx={{ cursor: 'pointer', flex: 1, width: 0 }}
@@ -55,7 +52,7 @@ const Conversation = () => {
                 {text}
               </Ellipsis>
             </Stack>
-            <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>
+            <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
               {AppType[record.app_type as keyof typeof AppType]?.label || '-'}
             </Box>
           </>
@@ -82,7 +79,7 @@ const Conversation = () => {
               </Box>
             </Stack>
             {user?.email && (
-              <Box sx={{ color: 'text.auxiliary' }}>{user?.email}</Box>
+              <Box sx={{ color: 'text.tertiary' }}>{user?.email}</Box>
             )}
           </Box>
         );
@@ -97,7 +94,7 @@ const Conversation = () => {
         return (
           <>
             <Box>{text}</Box>
-            <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>
+            <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
               {country === '中国' ? `${province}-${city}` : `${country}`}
             </Box>
           </>
@@ -112,7 +109,7 @@ const Conversation = () => {
         return (
           <Stack>
             <Box>{dayjs(text).fromNow()}</Box>
-            <Box sx={{ fontSize: 12, color: 'text.auxiliary' }}>
+            <Box sx={{ fontSize: 12, color: 'text.tertiary' }}>
               {dayjs(text).format('YYYY-MM-DD HH:mm:ss')}
             </Box>
           </Stack>
@@ -144,6 +141,7 @@ const Conversation = () => {
   }, [conversion_id]);
 
   useEffect(() => {
+    console.log(page, pageSize, subject, remoteIp, kb_id);
     if (kb_id) getData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, subject, remoteIp, kb_id]);

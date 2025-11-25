@@ -1,5 +1,4 @@
 import '@/assets/fonts/font.css';
-import '@/assets/fonts/iconfont';
 import '@/assets/styles/index.css';
 import '@/assets/styles/markdown.css';
 import dayjs from 'dayjs';

@@ -1,4 +1,4 @@
-import { FeishuBotSetting, updateAppDetail } from '@/api';
+import { FeishuBotSetting } from '@/api';
 import {
   Box,
   FormControlLabel,
@@ -6,7 +6,7 @@ import {
   RadioGroup,
   TextField,
 } from '@mui/material';
-import { Message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { FormItem, SettingCardItem } from './Common';
@@ -14,13 +14,14 @@ import {
   DomainKnowledgeBaseDetail,
   DomainAppDetailResp,
 } from '@/request/types';
-import { getApiV1AppDetail } from '@/request/App';
+import { getApiV1AppDetail, putApiV1App } from '@/request/App';
+import { useAppSelector } from '@/store';
 
 const CardRobotFeishu = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
   const [isEdit, setIsEdit] = useState(false);
   const [detail, setDetail] = useState<DomainAppDetailResp | null>(null);
   const [isEnabled, setIsEnabled] = useState(false);
-
+  const { kb_id } = useAppSelector(state => state.config);
   const {
     control,
     handleSubmit,
@@ -51,18 +52,20 @@ const CardRobotFeishu = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
 
   const onSubmit = handleSubmit(data => {
     if (!detail) return;
-    updateAppDetail(
+    putApiV1App(
       { id: detail.id! },
       {
+        kb_id,
         settings: {
           feishu_bot_is_enabled: data.feishu_bot_is_enabled,
           feishu_bot_app_id: data.feishu_bot_app_id,
           feishu_bot_app_secret: data.feishu_bot_app_secret,
+          // @ts-expect-error 类型错误
           feishu_bot_welcome_str: data.feishu_bot_welcome_str,
         },
       },
     ).then(() => {
-      Message.success('保存成功');
+      message.success('保存成功');
       setIsEdit(false);
       getDetail();
       reset();

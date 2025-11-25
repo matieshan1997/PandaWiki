@@ -1,5 +1,5 @@
 import LoadingIcon from '@/assets/images/loading.png';
-import { Box, Stack } from '@mui/material';
+import { alpha, Box, Stack } from '@mui/material';
 import Image from 'next/image';
 import { AnswerStatus } from './constant';
 
@@ -44,7 +44,14 @@ const ChatLoading = ({ thinking, onClick }: ChatLoadingProps) => {
           }}
         ></Box>
       </Stack>
-      <Box sx={{ lineHeight: 1 }}>{AnswerStatus[thinking]}</Box>
+      <Box
+        sx={theme => ({
+          lineHeight: 1,
+          color: alpha(theme.palette.text.primary, 0.5),
+        })}
+      >
+        {AnswerStatus[thinking]}
+      </Box>
     </Stack>
   );
 };

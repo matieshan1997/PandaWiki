@@ -1,7 +1,8 @@
 import { ITreeItem } from '@/api';
+import Cascader from '@/components/Cascader';
 import { addOpacityToColor } from '@/utils';
 import { Box, IconButton, Stack, useTheme } from '@mui/material';
-import { Icon, MenuSelect } from 'ct-mui';
+import { IconXiala, IconGengduo } from '@panda-wiki/icons';
 
 export type TreeMenuItem = {
   key: string;
@@ -18,17 +19,23 @@ export type TreeMenuItem = {
 
 export type TreeMenuOptions = {
   item: ITreeItem;
-  createItem: (type: 1 | 2) => void;
+  createItem: (type: 1 | 2, contentType?: string) => void;
   renameItem: () => void;
   isEditing: boolean;
   removeItem: (id: string) => void;
 };
 
-const TreeMenu = ({ menu }: { menu: TreeMenuItem[] }) => {
+const TreeMenu = ({
+  menu,
+  context,
+}: {
+  menu: TreeMenuItem[];
+  context?: React.ReactElement<{ onClick?: any; 'aria-describedby'?: any }>;
+}) => {
   const theme = useTheme();
 
   return (
-    <MenuSelect
+    <Cascader
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       childrenProps={{
@@ -89,13 +96,10 @@ const TreeMenu = ({ menu }: { menu: TreeMenuItem[] }) => {
             >
               {value.label}
               {value.children && (
-                <Icon
-                  type='icon-xiala'
-                  sx={{ fontSize: 20, transform: 'rotate(-90deg)' }}
-                />
+                <IconXiala sx={{ fontSize: 20, transform: 'rotate(-90deg)' }} />
               )}
             </Stack>
-            {value.key === 'third' && (
+            {value.key === 'next-line' && (
               <Box
                 sx={{
                   width: 145,
@@ -110,9 +114,11 @@ const TreeMenu = ({ menu }: { menu: TreeMenuItem[] }) => {
         ),
       }))}
       context={
-        <IconButton size='small'>
-          <Icon type='icon-gengduo' />
-        </IconButton>
+        context || (
+          <IconButton size='small'>
+            <IconGengduo sx={{ fontSize: '14px' }} />
+          </IconButton>
+        )
       }
     />
   );

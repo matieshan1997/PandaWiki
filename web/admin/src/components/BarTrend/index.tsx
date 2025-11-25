@@ -43,7 +43,7 @@ const BarTrend = ({ chartData, height, text }: PropsData) => {
             const { name, seriesName, value } = params[0];
             return `<div style="font-family: G;min-width: 80px">
               ${name || '-'}
-              <div>${seriesName} <span style='font-family: Gbold'>${value || 0}</span></div>
+              <div>${seriesName} <span style='font-weight: 700'>${value || 0}</span></div>
             </div>`;
           }
           return '';

@@ -9,6 +9,7 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/store/pg"
+	"github.com/chaitin/panda-wiki/utils"
 )
 
 type ConversationRepository struct {
@@ -117,8 +118,8 @@ func (r *ConversationRepository) ValidateConversationNonce(ctx context.Context, 
 	return nil
 }
 
-func (r *ConversationRepository) GetConversationDistribution(ctx context.Context, kbID string) ([]*domain.ConversationDistributionResp, error) {
-	var distribution []*domain.ConversationDistributionResp
+func (r *ConversationRepository) GetConversationDistribution(ctx context.Context, kbID string) ([]domain.ConversationDistribution, error) {
+	var distribution []domain.ConversationDistribution
 	if err := r.db.WithContext(ctx).
 		Model(&domain.Conversation{}).
 		Select("app_id", "COUNT(*) AS count").
@@ -241,4 +242,24 @@ func (r *ConversationRepository) GetMessageFeedBackList(ctx context.Context, req
 		return 0, nil, nil
 	}
 	return count, messageAnswers, nil
+}
+
+func (r *ConversationRepository) GetConversationDistributionByHour(ctx context.Context, kbID string, startHour int64) (map[string]int64, error) {
+	counts := make(map[string]int64)
+
+	distributions := make([]domain.MapStrInt64, 0)
+	if err := r.db.WithContext(ctx).Model(&domain.StatPageHour{}).
+		Select("conversation_distribution").
+		Where("kb_id = ?", kbID).
+		Where("hour >= ? and hour < ?", utils.GetTimeHourOffset(-startHour), utils.GetTimeHourOffset(-24)).
+		Pluck("conversation_distribution", &distributions).Error; err != nil {
+		return nil, err
+	}
+	for i := range distributions {
+		for k, v := range distributions[i] {
+			counts[k] += v
+		}
+	}
+
+	return counts, nil
 }

@@ -40,8 +40,8 @@ func NewUserUsecase(repo *pg.UserRepository, logger *log.Logger, config *config.
 	}, nil
 }
 
-func (u *UserUsecase) CreateUser(ctx context.Context, user *domain.User) error {
-	return u.repo.CreateUser(ctx, user)
+func (u *UserUsecase) CreateUser(ctx context.Context, user *domain.User, edition consts.LicenseEdition) error {
+	return u.repo.CreateUser(ctx, user, edition)
 }
 
 func (u *UserUsecase) VerifyUserAndGenerateToken(ctx context.Context, req v1.LoginReq) (string, error) {

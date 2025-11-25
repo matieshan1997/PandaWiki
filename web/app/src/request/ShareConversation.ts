@@ -12,7 +12,7 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
-  DomainResponse,
+  DomainPWResponse,
   DomainShareConversationDetailResp,
   GetShareV1ConversationDetailParams,
 } from "./types";
@@ -24,7 +24,7 @@ import {
  * @name GetShareV1ConversationDetail
  * @summary GetConversationDetail
  * @request GET:/share/v1/conversation/detail
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainShareConversationDetailResp,
 
 })` OK
@@ -35,7 +35,7 @@ export const getShareV1ConversationDetail = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainShareConversationDetailResp;
     }
   >({

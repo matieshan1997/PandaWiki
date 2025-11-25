@@ -1,35 +1,34 @@
-/* 挂件按钮样式 - 基于MUI主题 */
+/* 挂件按钮基础样式 */
 .widget-bot-button {
   position: fixed;
-  right: 0;
-  bottom: 190px;
   z-index: 9999;
   font-size: 14px;
   cursor: pointer;
   user-select: none;
   transition: all 0.2s ease-in-out;
-  border-radius: 18px 0 0 18px;
-  color: #FFFFFF;
-  box-shadow: 0px 6px 10px 0px rgba(54, 59, 76, 0.17);
-  padding: 11px;
-  min-height: 120px;
+  color: #646a73;
+  background-color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   font-family: var(--font-gilory, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
   border: none;
+  outline: none;
+  opacity: 0;
+  /* 优化拖拽性能 */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  transform-origin: center;
 }
 
 .widget-bot-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(50, 72, 242, 0.2);
+  transform: scale(1.1);
 }
 
 .widget-bot-button.dragging {
   cursor: grabbing;
-  transform: rotate(2deg);
-  box-shadow: 0 6px 12px rgba(50, 72, 242, 0.25);
 }
 
 .widget-bot-button-content {
@@ -39,14 +38,13 @@
   color: inherit;
 }
 
-.widget-bot-logo {
-  width: 20px;
-  height: 20px;
-  margin-bottom: 8px;
+/* 图标样式 */
+.widget-bot-icon {
   border-radius: 50%;
   object-fit: cover;
 }
 
+/* 文字样式 */
 .widget-bot-text {
   font-size: 14px;
   font-weight: 400;
@@ -58,6 +56,57 @@
 .widget-bot-text span {
   display: block;
   margin: 1px 0;
+}
+
+/* 侧边吸附按钮样式 */
+.widget-bot-side-sticky {
+  width: 48px;
+  padding: 8px 8px 12px 8px;
+  background: #FFFFFF;
+  box-shadow: 0px 6px 30px 6px rgba(33, 34, 45, 0.03), 0px 4px 12px -6px rgba(33, 34, 45, 0.05), 0px 4px 12px 0px rgba(33, 34, 45, 0.03);
+  border-radius: 20px;
+  min-height: auto;
+}
+
+/* 浅色主题样式 - 显式定义 */
+.widget-bot-side-sticky[data-theme="dark"] {
+  background: #202531;
+  color: #FFFFFF;
+}
+
+.widget-bot-side-sticky .widget-bot-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 4px;
+}
+
+.widget-bot-side-sticky .widget-bot-text {
+  font-size: 12px;
+  /* color: #646a73; */
+  line-height: 16px;
+}
+
+/* 悬浮球按钮样式 */
+.widget-bot-hover-ball {
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background: #FFFFFF;
+  box-shadow: 0px 6px 16px 0px rgba(33, 34, 45, 0.02), 0px 8px 40px 0px rgba(50, 73, 45, 0.12);
+  border: 1px solid #ECEEF1;
+  padding: 0;
+  min-height: auto;
+}
+
+/* 浅色主题样式 - 显式定义 */
+.widget-bot-hover-ball[data-theme="dark"] {
+  background: #202531;
+}
+
+.widget-bot-hover-ball .widget-bot-hover-ball-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0;
 }
 
 /* 模态框样式 - 基于MUI主题 */
@@ -75,6 +124,11 @@
   backdrop-filter: blur(4px);
 }
 
+.widget-bot-modal-fixed {
+  align-items: center;
+  justify-content: center;
+}
+
 .widget-bot-modal-content {
   position: absolute;
   width: 600px;
@@ -86,6 +140,14 @@
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.widget-bot-modal-content-fixed {
+  position: relative;
+  width: 800px;
+  height: auto;
+  max-height: 90vh;
+  margin: auto;
 }
 
 @keyframes slideInUp {
@@ -100,34 +162,30 @@
   }
 }
 
-/* 关闭按钮样式 - 基于MUI IconButton */
+/* 关闭按钮样式 - 透明框 */
 .widget-bot-close-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  background: none;
-  width: 36px;
-  height: 36px;
+  top: 22.5px;
+  right: 16px;
+  background: transparent;
+  width: 36.26px;
+  height: 25px;
   border: none;
-  border-radius: 50%;
+  border-radius: 0;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  opacity: 0.5;
-  z-index: 10001;
-  transition: all 0.1s ease-in-out;
-  font-family: var(--font-gilory, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-}
-
-.widget-bot-close-btn:hover {
+  font-size: 0;
   opacity: 1;
-}
-
-.widget-bot-close-btn:active {
-  transform: scale(0.95);
+  z-index: 10001;
+  transition: none;
+  font-family: var(--font-gilory, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  padding: 0;
+  margin: 0;
+  pointer-events: none;
+  /* 允许鼠标穿透到下方 */
 }
 
 /* iframe样式 */
@@ -140,90 +198,73 @@
   background: #F8F9FA;
 }
 
+.widget-bot-modal-content-fixed .widget-bot-iframe {
+  min-height: 600px;
+  height: auto;
+}
+
 /* 防止页面滚动 */
 body.widget-bot-modal-open {
   overflow: hidden;
 }
 
-/* 暗色主题支持 - 基于data-theme属性 */
-.widget-bot-button[data-theme="dark"] {
-  background: #6E73FE;
-  box-shadow: 0 2px 4px rgba(110, 115, 254, 0.15);
-}
-
-.widget-bot-button[data-theme="dark"]:hover {
-  background: #5d68fd;
-  box-shadow: 0 4px 8px rgba(110, 115, 254, 0.2);
-}
-
-.widget-bot-button[data-theme="dark"].dragging {
-  box-shadow: 0 6px 12px rgba(110, 115, 254, 0.25);
-}
-
-.widget-bot-modal[data-theme="dark"] {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.widget-bot-modal[data-theme="dark"] .widget-bot-modal-content {
-  background: #202531;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-/* 移动端适配 */
+/* 移动端适配 - 统一处理 */
 @media (max-width: 768px) {
-  .widget-bot-button {
-    bottom: 16px;
-    padding: 8px;
-    border-radius: 10px 0 0 10px;
+  .widget-bot-side-sticky {
+    width: 48px;
+    padding: 6px 6px 12px 6px;
+    border-radius: 24px;
+  }
+
+  .widget-bot-hover-ball {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    padding: 0;
+  }
+
+  .widget-bot-hover-ball .widget-bot-hover-ball-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0;
   }
 
   .widget-bot-text {
     font-size: 12px;
   }
 
-  .widget-bot-logo {
+  .widget-bot-icon {
     width: 16px;
     height: 16px;
     margin-bottom: 6px;
   }
 
+  /* 移动端弹框统一居中显示，宽度100%-32px，高度90vh */
   .widget-bot-modal-content {
-    width: calc(100% - 60.5px);
-    height: 90%;
-    max-width: none;
-    max-height: none;
+    position: relative !important;
+    width: calc(100% - 32px) !important;
+    height: 90vh !important;
+    max-width: none !important;
+    max-height: 90vh !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin: auto !important;
+  }
+
+  .widget-bot-modal-content-fixed {
+    width: calc(100% - 32px) !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
   }
 
   .widget-bot-close-btn {
-    top: 8px;
-    right: 8px;
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
-  }
-}
-
-/* 小屏幕适配 */
-@media (max-width: 480px) {
-  .widget-bot-button {
-    bottom: 12px;
-    padding: 6px;
-  }
-
-  .widget-bot-text {
-    font-size: 11px;
-  }
-
-  .widget-bot-modal-content {
-    width: calc(100% - 55.5px);
-    height: 90%;
-    border-radius: 6px;
-  }
-
-  .widget-bot-close-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
+    top: 22.5px;
+    right: 16px;
+    width: 36.26px;
+    height: 25px;
+    font-size: 0;
   }
 }
 
@@ -271,29 +312,4 @@ body.widget-bot-modal-open {
   .widget-bot-button.dragging {
     transform: none;
   }
-}
-
-/* 浅色主题样式 - 显式定义 */
-.widget-bot-button[data-theme="light"] {
-  background: #3248F2;
-  color: #FFFFFF;
-  box-shadow: 0px 6px 10px 0px rgba(54, 59, 76, 0.17);
-}
-
-.widget-bot-button[data-theme="light"]:hover {
-  background: #2a3cdb;
-  box-shadow: 0 4px 8px rgba(50, 72, 242, 0.2);
-}
-
-.widget-bot-button[data-theme="light"].dragging {
-  box-shadow: 0 6px 12px rgba(50, 72, 242, 0.25);
-}
-
-.widget-bot-modal[data-theme="light"] {
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.widget-bot-modal[data-theme="light"] .widget-bot-modal-content {
-  background: #fff;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }

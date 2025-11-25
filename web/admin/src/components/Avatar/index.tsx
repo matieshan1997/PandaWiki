@@ -1,6 +1,6 @@
 import Logo from '@/assets/images/logo.png';
 import { Avatar as MuiAvatar, SxProps } from '@mui/material';
-import { Icon } from 'ct-mui';
+import { IconDandulogo } from '@panda-wiki/icons';
 import { ReactNode } from 'react';
 
 interface AvatarProps {
@@ -15,9 +15,8 @@ const Avatar = (props: AvatarProps) => {
   const src = props.src;
 
   const LogoIcon = (
-    <Icon
+    <IconDandulogo
       sx={{ width: '100%', height: '100%', color: 'text.primary' }}
-      type='icon-dandulogo'
     />
   );
 

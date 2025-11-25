@@ -1,4 +1,3 @@
-import { updateAppDetail } from '@/api';
 import {
   Box,
   FormControlLabel,
@@ -6,21 +5,22 @@ import {
   RadioGroup,
   TextField,
 } from '@mui/material';
-import { Message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   DomainKnowledgeBaseDetail,
   DomainAppDetailResp,
 } from '@/request/types';
-import { getApiV1AppDetail } from '@/request/App';
+import { getApiV1AppDetail, putApiV1App } from '@/request/App';
 import { FormItem, SettingCardItem } from './Common';
+import { useAppSelector } from '@/store';
 
 const CardRobotDiscord = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
   const [isEdit, setIsEdit] = useState(false);
   const [detail, setDetail] = useState<DomainAppDetailResp | null>(null);
   const [isEnabled, setIsEnabled] = useState(false);
-
+  const { kb_id } = useAppSelector(state => state.config);
   const {
     control,
     handleSubmit,
@@ -46,16 +46,17 @@ const CardRobotDiscord = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
 
   const onSubmit = handleSubmit(data => {
     if (!detail) return;
-    updateAppDetail(
+    putApiV1App(
       { id: detail.id! },
       {
+        kb_id,
         settings: {
           discord_bot_is_enabled: data.discord_bot_is_enabled,
           discord_bot_token: data.discord_bot_token,
         },
       },
     ).then(() => {
-      Message.success('保存成功');
+      message.success('保存成功');
       setIsEdit(false);
       getDetail();
       reset();

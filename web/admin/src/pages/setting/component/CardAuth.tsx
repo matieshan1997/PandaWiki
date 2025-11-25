@@ -1,9 +1,9 @@
 import { AuthSetting } from '@/api/type';
 import { ConstsSourceType } from '@/request/pro/types';
 import dayjs from 'dayjs';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import {
   Box,
-  Button,
   FormControlLabel,
   Radio,
   RadioGroup,
@@ -11,21 +11,27 @@ import {
   TextField,
   Select,
   MenuItem,
-  Link,
-  styled,
   Autocomplete,
   Chip,
 } from '@mui/material';
+import Avatar from '@/components/Avatar';
 import NoData from '@/assets/images/nodata.png';
 import { putApiV1KnowledgeBaseDetail } from '@/request/KnowledgeBase';
 import { DomainKnowledgeBaseDetail } from '@/request/types';
 import { GithubComChaitinPandaWikiProApiAuthV1AuthItem } from '@/request/pro/types';
+import UserGroup from './UserGroup';
 import { getApiProV1AuthGet, postApiProV1AuthSet } from '@/request/pro/Auth';
-import { StyledFormLabel } from '@/components/Form';
-import { Message, Table, Icon } from 'ct-mui';
-import { useEffect, useMemo, useState } from 'react';
+
+import { getApiV1AuthGet, postApiV1AuthSet } from '@/request/Auth';
+
+import { message, Table, Icon, Modal } from '@ctzhian/ui';
+import { ColumnType } from '@ctzhian/ui/dist/Table';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useAppSelector } from '@/store';
+import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
+import { VersionCanUse } from '@/components/VersionMask';
+import { SettingCardItem, FormItem } from './Common';
 
 interface CardAuthProps {
   kb: DomainKnowledgeBaseDetail;
@@ -39,38 +45,6 @@ const EXTEND_CONSTS_SOURCE_TYPE = {
 
 type ExtendConstsSourceType =
   (typeof EXTEND_CONSTS_SOURCE_TYPE)[keyof typeof EXTEND_CONSTS_SOURCE_TYPE];
-
-const sourceTypeIcon = {
-  [ConstsSourceType.SourceTypeDingTalk]: 'icon-dingdingjiqiren',
-  [ConstsSourceType.SourceTypeFeishu]: 'icon-feishujiqiren',
-  [ConstsSourceType.SourceTypeWeCom]: 'icon-qiyeweixinjiqiren',
-};
-
-const StyledFormItem = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(2),
-  margin: theme.spacing(2, 2, 0),
-}));
-
-export const FormItem = ({
-  label,
-  children,
-  required,
-}: {
-  label: string | React.ReactNode;
-  children: React.ReactNode;
-  required?: boolean;
-}) => {
-  return (
-    <StyledFormItem>
-      <StyledFormLabel required={required} sx={{ width: 156, flexShrink: 0 }}>
-        {label}
-      </StyledFormLabel>
-      {children}
-    </StyledFormItem>
-  );
-};
 
 const CardAuth = ({ kb, refresh }: CardAuthProps) => {
   const { license, kb_id } = useAppSelector(state => state.config);
@@ -103,6 +77,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
       email_field: '',
       cas_url: '',
       cas_version: '2',
+      proxy: '',
       // ldap
       bind_dn: '',
       bind_password: '',
@@ -111,7 +86,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
       user_filter: '',
     },
   });
-
+  const sourceTypeRef = useRef(watch('source_type'));
   const source_type = watch('source_type');
   const userInfoUrl = watch('user_info_url');
   const enabled = watch('enabled');
@@ -139,54 +114,63 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
           is_forbidden: value.enabled === '3',
         },
       }),
-      value.enabled === '2' && isPro
-        ? postApiProV1AuthSet({
-            kb_id,
-            source_type: value.source_type as ConstsSourceType,
-            client_id: value.client_id,
-            client_secret: value.client_secret,
-            agent_id: value.agent_id,
-            token_url: value.token_url,
-            authorize_url: value.authorize_url,
-            scopes: value.scopes,
-            user_info_url: value.user_info_url,
-            id_field: value.id_field,
-            name_field: value.name_field,
-            avatar_field: value.avatar_field,
-            email_field: value.email_field,
-            cas_url: value.cas_url,
-            cas_version: value.cas_version,
-            // ldap
-            bind_dn: value.bind_dn,
-            bind_password: value.bind_password,
-            ldap_server_url: value.ldap_server_url,
-            user_base_dn: value.user_base_dn,
-            user_filter: value.user_filter,
-          })
+      value.enabled === '2' &&
+      source_type !== EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword
+        ? isBusiness
+          ? postApiProV1AuthSet({
+              kb_id,
+              source_type: value.source_type as ConstsSourceType,
+              client_id: value.client_id,
+              client_secret: value.client_secret,
+              agent_id: value.agent_id,
+              token_url: value.token_url,
+              authorize_url: value.authorize_url,
+              scopes: value.scopes,
+              user_info_url: value.user_info_url,
+              id_field: value.id_field,
+              name_field: value.name_field,
+              avatar_field: value.avatar_field,
+              email_field: value.email_field,
+              cas_url: value.cas_url,
+              cas_version: value.cas_version,
+              proxy: value.proxy,
+              // ldap
+              bind_dn: value.bind_dn,
+              bind_password: value.bind_password,
+              ldap_server_url: value.ldap_server_url,
+              user_base_dn: value.user_base_dn,
+              user_filter: value.user_filter,
+            })
+          : postApiV1AuthSet({
+              kb_id,
+              source_type: value.source_type as 'github',
+              client_id: value.client_id,
+              client_secret: value.client_secret,
+              proxy: value.proxy,
+            })
         : Promise.resolve(),
     ]).then(() => {
       refresh({
         enabled: value.enabled === '2',
         password: value.password,
       });
-      Message.success('保存成功');
+      message.success('保存成功');
       setIsEdit(false);
     });
   });
 
-  const isPro = useMemo(() => {
-    return license.edition === 2 || license.edition === 1;
+  const isBusiness = useMemo(() => {
+    return BUSINESS_VERSION_PERMISSION.includes(license.edition!);
   }, [license]);
 
   useEffect(() => {
-    setValue(
-      'source_type',
-      isPro
-        ? kb.access_settings?.source_type ||
-            EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword
-        : EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword,
-    );
-  }, [kb, isPro]);
+    const source_type = isBusiness
+      ? kb.access_settings?.source_type ||
+        EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword
+      : EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword;
+    setValue('source_type', source_type);
+    sourceTypeRef.current = source_type;
+  }, [kb, isBusiness]);
 
   useEffect(() => {
     if (kb.access_settings?.simple_auth) {
@@ -201,51 +185,66 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
     }
   }, [kb]);
 
+  const getAuth = () => {
+    if (isBusiness) {
+      getApiProV1AuthGet({
+        kb_id,
+        source_type: source_type as ConstsSourceType,
+      }).then(res => {
+        if (!res) return;
+        setMemberList(res.auths || []);
+        setValue('client_id', res.client_id!);
+        setValue('client_secret', res.client_secret!);
+        setValue('agent_id', res.agent_id!);
+        setValue('scopes', res.scopes || []);
+        setValue('token_url', res.token_url!);
+        setValue('authorize_url', res.authorize_url!);
+        setValue('user_info_url', res.user_info_url!);
+        setValue('id_field', res.id_field!);
+        setValue('name_field', res.name_field!);
+        setValue('avatar_field', res.avatar_field!);
+        setValue('email_field', res.email_field!);
+        setValue('cas_url', res.cas_url!);
+        setValue('cas_version', res.cas_version!);
+        setValue('proxy', res.proxy!);
+        // ldap
+        setValue('bind_dn', res.bind_dn!);
+        setValue('bind_password', res.bind_password!);
+        setValue('ldap_server_url', res.ldap_server_url!);
+        setValue('user_base_dn', res.user_base_dn!);
+        setValue('user_filter', res.user_filter!);
+      });
+    } else if (source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub) {
+      getApiV1AuthGet({
+        kb_id,
+        source_type: source_type as ConstsSourceType,
+      }).then(res => {
+        if (!res) return;
+        setMemberList(res.auths || []);
+        setValue('client_id', res.client_id!);
+        setValue('client_secret', res.client_secret!);
+        setValue('proxy', res.proxy!);
+      });
+    }
+  };
+
   useEffect(() => {
-    if (!isPro || !kb_id || enabled !== '2') return;
+    if (!kb_id || enabled !== '2') return;
+    getAuth();
+  }, [kb_id, isBusiness, source_type, enabled]);
 
-    getApiProV1AuthGet({
-      kb_id,
-      source_type: source_type as ConstsSourceType,
-    }).then(res => {
-      setMemberList(res.auths || []);
-      setValue('client_id', res.client_id!);
-      setValue('client_secret', res.client_secret!);
-      setValue('agent_id', res.agent_id!);
-      setValue('scopes', res.scopes || []);
-      setValue('token_url', res.token_url!);
-      setValue('authorize_url', res.authorize_url!);
-      setValue('user_info_url', res.user_info_url!);
-      setValue('id_field', res.id_field!);
-      setValue('name_field', res.name_field!);
-      setValue('avatar_field', res.avatar_field!);
-      setValue('email_field', res.email_field!);
-      setValue('cas_url', res.cas_url!);
-      setValue('cas_version', res.cas_version!);
-      // ldap
-      setValue('bind_dn', res.bind_dn!);
-      setValue('bind_password', res.bind_password!);
-      setValue('ldap_server_url', res.ldap_server_url!);
-      setValue('user_base_dn', res.user_base_dn!);
-      setValue('user_filter', res.user_filter!);
-    });
-  }, [kb_id, isPro, source_type, enabled]);
-
-  const columns = [
+  const columns: ColumnType<GithubComChaitinPandaWikiProApiAuthV1AuthItem>[] = [
     {
       title: '用户名',
       dataIndex: 'username',
-      render: (text: string) => {
+      render: (text: string, record) => {
         return (
           <Stack direction={'row'} alignItems={'center'} gap={1}>
-            {sourceTypeIcon[source_type as keyof typeof sourceTypeIcon] && (
-              <Icon
-                type={
-                  sourceTypeIcon[source_type as keyof typeof sourceTypeIcon]
-                }
-                sx={{ fontSize: 16 }}
-              />
-            )}
+            <Avatar
+              src={record.avatar_url}
+              sx={{ width: 20, height: 20, borderRadius: '50%' }}
+            />
+
             {text}
           </Stack>
         );
@@ -254,10 +253,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
     {
       title: 'created_at',
       dataIndex: 'created_at',
-      render: (
-        text: string,
-        record: GithubComChaitinPandaWikiProApiAuthV1AuthItem,
-      ) => {
+      render: (text: string, record) => {
         return (
           <Box sx={{ color: 'text.secondary' }}>
             {dayjs(text).fromNow()}加入，
@@ -307,6 +303,23 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
                 placeholder='请输入'
                 error={!!errors.client_secret}
                 helperText={errors.client_secret?.message}
+                onChange={e => {
+                  field.onChange(e.target.value);
+                  setIsEdit(true);
+                }}
+              />
+            )}
+          />
+        </FormItem>
+        <FormItem label='代理地址'>
+          <Controller
+            control={control}
+            name='proxy'
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                placeholder='请输入'
                 onChange={e => {
                   field.onChange(e.target.value);
                   setIsEdit(true);
@@ -774,248 +787,175 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
 
   return (
     <>
-      <Stack
-        direction='row'
-        alignItems={'center'}
-        justifyContent={'space-between'}
-        sx={{
-          m: 2,
-          height: 32,
-          fontWeight: 'bold',
+      <SettingCardItem
+        title='访问认证'
+        isEdit={isEdit}
+        onSubmit={onSubmit}
+        more={{
+          type: 'link',
+          href: 'https://pandawiki.docs.baizhi.cloud/node/01986040-602c-736c-b99f-0b3cb9bb89e5',
+          target: '_blank',
+          text: '使用方法',
         }}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            '&::before': {
-              content: '""',
-              display: 'inline-block',
-              width: 4,
-              height: 12,
-              bgcolor: 'common.black',
-              borderRadius: '2px',
-              mr: 1,
-            },
-          }}
-        >
-          访问认证{' '}
-        </Box>
-        <Box sx={{ flexGrow: 1, ml: 1 }}>
-          <Link
-            component='a'
-            href='https://pandawiki.docs.baizhi.cloud/node/01986040-602c-736c-b99f-0b3cb9bb89e5'
-            target='_blank'
-            sx={{
-              fontSize: 14,
-              textDecoration: 'none',
-              fontWeight: 'normal',
-              '&:hover': {
-                fontWeight: 'bold',
-              },
-            }}
-          >
-            使用方法
-          </Link>
-        </Box>
-        {isEdit && (
-          <Button variant='contained' size='small' onClick={onSubmit}>
-            保存
-          </Button>
-        )}
-      </Stack>
-      <Stack direction={'row'} gap={2} sx={{ mx: 2, mb: 2 }}>
-        <Box
-          sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}
-        >
-          访问控制
-        </Box>
-        <Controller
-          control={control}
-          name='enabled'
-          render={({ field }) => (
-            <RadioGroup
-              row
-              {...field}
-              value={field.value}
-              onChange={e => {
-                field.onChange(e.target.value);
-                setIsEdit(true);
-              }}
-            >
-              <FormControlLabel
-                value={'1'}
-                control={<Radio size='small' />}
-                label={<Box sx={{ width: 65 }}>完全公开</Box>}
-              />
-              <FormControlLabel
-                value={'2'}
-                control={<Radio size='small' />}
-                label={<Box sx={{ width: 65 }}>需要认证</Box>}
-              />
-              {/* <FormControlLabel
-                value={'3'}
-                control={<Radio size='small' disabled={!isEnterprise} />}
-                label={
-                  <Stack
-                    direction='row'
-                    alignItems='center'
-                    gap={0.5}
-                    sx={{ width: 135 }}
-                  >
-                    企业级身份认证
-                    {!isEnterprise && (
-                      <Tooltip title='企业版可用' placement='top' arrow>
-                        <InfoIcon
-                          sx={{ color: 'text.secondary', fontSize: 14 }}
-                        />
-                      </Tooltip>
-                    )}
-                  </Stack>
-                }
-              /> */}
-              <FormControlLabel
-                value={'3'}
-                control={<Radio size='small' />}
-                label={<Box sx={{ width: 65 }}>禁止访问</Box>}
-              />
-            </RadioGroup>
-          )}
-        />
-      </Stack>
-      {enabled === '2' && (
-        <>
-          <FormItem label='登录方式'>
-            <Controller
-              control={control}
-              name='source_type'
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  onChange={e => {
-                    field.onChange(e.target.value);
-                    setIsEdit(true);
-                  }}
-                  fullWidth
-                  sx={{ height: 52 }}
-                >
-                  <MenuItem
-                    value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword}
-                  >
-                    密码认证
-                  </MenuItem>
-                  <MenuItem
-                    value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeDingTalk}
-                    disabled={!isPro}
-                  >
-                    钉钉登录 {isPro ? '' : tips}
-                  </MenuItem>
-                  <MenuItem
-                    value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeFeishu}
-                    disabled={!isPro}
-                  >
-                    飞书登录 {isPro ? '' : tips}
-                  </MenuItem>
-                  <MenuItem
-                    value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeWeCom}
-                    disabled={!isPro}
-                  >
-                    企业微信登录 {isPro ? '' : tips}
-                  </MenuItem>
-                  <MenuItem
-                    value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeOAuth}
-                    disabled={!isPro}
-                  >
-                    OAuth 登录 {isPro ? '' : tips}
-                  </MenuItem>
-                  <MenuItem
-                    value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeCAS}
-                    disabled={!isPro}
-                  >
-                    CAS 登录 {isPro ? '' : tips}
-                  </MenuItem>
-                  <MenuItem
-                    value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeLDAP}
-                    disabled={!isPro}
-                  >
-                    LDAP 登录 {isPro ? '' : tips}
-                  </MenuItem>
-                  <MenuItem
-                    value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub}
-                    disabled={!isPro}
-                  >
-                    GitHub 登录 {isPro ? '' : tips}
-                  </MenuItem>
-                </Select>
-              )}
-            />
-          </FormItem>
+        <FormItem label='访问控制'>
+          <Controller
+            control={control}
+            name='enabled'
+            render={({ field }) => (
+              <RadioGroup
+                row
+                {...field}
+                value={field.value}
+                onChange={e => {
+                  field.onChange(e.target.value);
+                  setIsEdit(true);
+                }}
+              >
+                <FormControlLabel
+                  value={'1'}
+                  control={<Radio size='small' />}
+                  label={<Box sx={{ width: 65 }}>完全公开</Box>}
+                />
+                <FormControlLabel
+                  value={'2'}
+                  control={<Radio size='small' />}
+                  label={<Box sx={{ width: 65 }}>需要认证</Box>}
+                />
+                <FormControlLabel
+                  value={'3'}
+                  control={<Radio size='small' />}
+                  label={<Box sx={{ width: 65 }}>禁止访问</Box>}
+                />
+              </RadioGroup>
+            )}
+          />
+        </FormItem>
 
-          {[
-            ConstsSourceType.SourceTypeDingTalk,
-            ConstsSourceType.SourceTypeFeishu,
-            ConstsSourceType.SourceTypeWeCom,
-          ].includes(source_type as ConstsSourceType) && (
-            <>
-              <FormItem label='Client ID' required>
-                <Controller
-                  control={control}
-                  name='client_id'
-                  rules={{
-                    required: {
-                      value: true,
-                      message: 'Client Id 不能为空',
-                    },
-                  }}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      onChange={e => {
-                        field.onChange(e.target.value);
-                        setIsEdit(true);
-                      }}
-                      fullWidth
-                      placeholder='请输入'
-                      error={!!errors.client_id}
-                      helperText={errors.client_id?.message}
-                    />
-                  )}
-                />
-              </FormItem>
-              <FormItem label='Client Secret' required>
-                <Controller
-                  control={control}
-                  name='client_secret'
-                  rules={{
-                    required: {
-                      value: true,
-                      message: ' Client Secret 不能为空',
-                    },
-                  }}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      onChange={e => {
-                        field.onChange(e.target.value);
-                        setIsEdit(true);
-                      }}
-                      placeholder='请输入'
-                      error={!!errors.client_secret}
-                      helperText={errors.client_secret?.message}
-                    />
-                  )}
-                />
-              </FormItem>
-              {source_type === ConstsSourceType.SourceTypeWeCom && (
-                <FormItem label='Agent ID' required>
+        {enabled === '2' && (
+          <>
+            <FormItem label='登录方式'>
+              <Controller
+                control={control}
+                name='source_type'
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    onChange={e => {
+                      field.onChange(e.target.value);
+                      setIsEdit(true);
+                    }}
+                    MenuProps={{
+                      sx: {
+                        '.Mui-disabled': {
+                          opacity: '1 !important',
+                          color: 'text.disabled',
+                        },
+                      },
+                    }}
+                    fullWidth
+                    sx={{
+                      height: 52,
+                    }}
+                  >
+                    <MenuItem
+                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword}
+                    >
+                      密码认证
+                    </MenuItem>
+                    <MenuItem
+                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeDingTalk}
+                      disabled={!isBusiness}
+                    >
+                      钉钉登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    </MenuItem>
+                    <MenuItem
+                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeFeishu}
+                      disabled={!isBusiness}
+                    >
+                      飞书登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    </MenuItem>
+                    <MenuItem
+                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeWeCom}
+                      disabled={!isBusiness}
+                    >
+                      企业微信登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    </MenuItem>
+                    <MenuItem
+                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeOAuth}
+                      disabled={!isBusiness}
+                    >
+                      OAuth 登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    </MenuItem>
+                    <MenuItem
+                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeCAS}
+                      disabled={!isBusiness}
+                    >
+                      CAS 登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    </MenuItem>
+                    <MenuItem
+                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeLDAP}
+                      disabled={!isBusiness}
+                    >
+                      LDAP 登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    </MenuItem>
+                    <MenuItem
+                      value={EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub}
+                      disabled={!isBusiness}
+                    >
+                      GitHub 登录{' '}
+                      <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+                    </MenuItem>
+                  </Select>
+                )}
+              />
+            </FormItem>
+
+            {[
+              ConstsSourceType.SourceTypeDingTalk,
+              ConstsSourceType.SourceTypeFeishu,
+              ConstsSourceType.SourceTypeWeCom,
+            ].includes(source_type as ConstsSourceType) && (
+              <>
+                <FormItem label='Client ID' required>
                   <Controller
                     control={control}
-                    name='agent_id'
+                    name='client_id'
                     rules={{
                       required: {
                         value: true,
-                        message: 'Agent ID  不能为空',
+                        message: 'Client Id 不能为空',
+                      },
+                    }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        onChange={e => {
+                          field.onChange(e.target.value);
+                          setIsEdit(true);
+                        }}
+                        fullWidth
+                        placeholder='请输入'
+                        error={!!errors.client_id}
+                        helperText={errors.client_id?.message}
+                      />
+                    )}
+                  />
+                </FormItem>
+                <FormItem label='Client Secret' required>
+                  <Controller
+                    control={control}
+                    name='client_secret'
+                    rules={{
+                      required: {
+                        value: true,
+                        message: ' Client Secret 不能为空',
                       },
                     }}
                     render={({ field }) => (
@@ -1027,48 +967,65 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
                           setIsEdit(true);
                         }}
                         placeholder='请输入'
-                        error={!!errors.agent_id}
-                        helperText={errors.agent_id?.message}
+                        error={!!errors.client_secret}
+                        helperText={errors.client_secret?.message}
                       />
                     )}
                   />
                 </FormItem>
-              )}
-            </>
-          )}
+                {source_type === ConstsSourceType.SourceTypeWeCom && (
+                  <FormItem label='Agent ID' required>
+                    <Controller
+                      control={control}
+                      name='agent_id'
+                      rules={{
+                        required: {
+                          value: true,
+                          message: 'Agent ID  不能为空',
+                        },
+                      }}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          onChange={e => {
+                            field.onChange(e.target.value);
+                            setIsEdit(true);
+                          }}
+                          placeholder='请输入'
+                          error={!!errors.agent_id}
+                          helperText={errors.agent_id?.message}
+                        />
+                      )}
+                    />
+                  </FormItem>
+                )}
+              </>
+            )}
 
-          {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeOAuth &&
-            oauthForm()}
-          {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeCAS && casForm()}
-          {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeLDAP &&
-            ldapForm()}
-          {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword &&
-            passwordForm()}
-          {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub &&
-            githubForm()}
-
-          {source_type !== EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword && (
-            <>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  m: 2,
-                  height: 32,
-                  fontWeight: 'bold',
-                  '&::before': {
-                    content: '""',
-                    display: 'inline-block',
-                    width: 4,
-                    height: 12,
-                    bgcolor: 'common.black',
-                    borderRadius: '2px',
-                    mr: 1,
-                  },
-                }}
-              >
-                成员{' '}
-              </Box>
+            {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeOAuth &&
+              oauthForm()}
+            {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeCAS &&
+              casForm()}
+            {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeLDAP &&
+              ldapForm()}
+            {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword &&
+              passwordForm()}
+            {source_type === EXTEND_CONSTS_SOURCE_TYPE.SourceTypeGitHub &&
+              githubForm()}
+          </>
+        )}
+      </SettingCardItem>{' '}
+      {enabled === '2' &&
+        source_type !== EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword && (
+          <>
+            <UserGroup
+              memberList={memberList}
+              enabled={enabled}
+              sourceType={source_type}
+              getAuth={getAuth}
+            />
+            <SettingCardItem title='成员'>
               <Table
                 columns={columns}
                 dataSource={memberList}
@@ -1076,7 +1033,6 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
                 rowKey='id'
                 size='small'
                 sx={{
-                  mx: 2,
                   '.MuiTableContainer-root': {
                     maxHeight: 400,
                     border: '1px dashed',
@@ -1104,10 +1060,9 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
                   </Stack>
                 }
               />
-            </>
-          )}
-        </>
-      )}
+            </SettingCardItem>
+          </>
+        )}
     </>
   );
 };

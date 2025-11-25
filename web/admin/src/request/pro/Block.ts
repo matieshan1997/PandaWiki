@@ -12,6 +12,7 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
+  DomainPWResponse,
   DomainResponse,
   GetApiProV1BlockParams,
   GithubComChaitinPandaWikiProDomainBlockWords,
@@ -25,7 +26,7 @@ import {
  * @name GetApiProV1Block
  * @summary Get question block words
  * @request GET:/api/pro/v1/block
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: GithubComChaitinPandaWikiProDomainBlockWords,
 
 })` OK
@@ -36,7 +37,7 @@ export const getApiProV1Block = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: GithubComChaitinPandaWikiProDomainBlockWords;
     }
   >({

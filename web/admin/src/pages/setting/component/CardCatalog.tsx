@@ -1,5 +1,5 @@
-import { updateAppDetail } from '@/api';
 import { CatalogSetting } from '@/api/type';
+import { putApiV1App } from '@/request/App';
 import { DomainAppDetailResp } from '@/request/types';
 import {
   Box,
@@ -8,10 +8,11 @@ import {
   RadioGroup,
   Slider,
 } from '@mui/material';
-import { Message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { FormItem, SettingCardItem } from './Common';
+import { useAppSelector } from '@/store';
 
 interface CardCatalogProps {
   id: string;
@@ -21,6 +22,7 @@ interface CardCatalogProps {
 
 const CardCatalog = ({ id, data, refresh }: CardCatalogProps) => {
   const [isEdit, setIsEdit] = useState(false);
+  const { kb_id } = useAppSelector(state => state.config);
   const { control, handleSubmit, setValue } = useForm<CatalogSetting>({
     defaultValues: {
       catalog_visible: 1,
@@ -30,13 +32,12 @@ const CardCatalog = ({ id, data, refresh }: CardCatalogProps) => {
   });
 
   const onSubmit = handleSubmit(value => {
-    updateAppDetail(
+    putApiV1App(
       { id },
-      // @ts-expect-error 类型不匹配
-      { settings: { ...data.settings, catalog_settings: value } },
+      { settings: { ...data.settings, catalog_settings: value }, kb_id },
     ).then(() => {
       refresh(value);
-      Message.success('保存成功');
+      message.success('保存成功');
       setIsEdit(false);
     });
   });

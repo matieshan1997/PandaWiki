@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import { setKbC, setKbId, setKbList } from '@/store/slices/config';
 import { CheckCircle } from '@mui/icons-material';
 import { Box, Checkbox, Divider, Stack, TextField } from '@mui/material';
-import { Message, Modal } from 'ct-mui';
+import { message, Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useLocation } from 'react-router-dom';
@@ -86,19 +86,19 @@ const KBCreate = () => {
       formData.ssl_ports = [+value.ssl_port];
       if (value.httpsCert) formData.public_key = value.httpsCert;
       else {
-        Message.error('请上传 SSL 证书文件');
+        message.error('请上传 SSL 证书文件');
         return;
       }
       if (value.httpsKey) formData.private_key = value.httpsKey;
       else {
-        Message.error('请上传 SSL 私钥文件');
+        message.error('请上传 SSL 私钥文件');
         return;
       }
     }
     postApiV1KnowledgeBase(formData)
       // @ts-expect-error 类型错误
       .then(({ id }) => {
-        Message.success('创建成功');
+        message.success('创建成功');
         setOpen(false);
         setSuccess(true);
         getKbList(id);
@@ -112,15 +112,11 @@ const KBCreate = () => {
   const getKbList = (id?: string) => {
     const kb_id = id || localStorage.getItem('kb_id') || '';
     getApiV1KnowledgeBaseList().then(res => {
-      if (res.length > 0) {
-        dispatch(setKbList(res));
-        if (res.find(item => item.id === kb_id)) {
-          dispatch(setKbId(kb_id));
-        } else {
-          dispatch(setKbId(res[0]?.id || ''));
-        }
+      dispatch(setKbList(res));
+      if (res.find(item => item.id === kb_id)) {
+        dispatch(setKbId(kb_id));
       } else {
-        if (modelStatus) setOpen(true);
+        dispatch(setKbId(res[0]?.id || ''));
       }
     });
   };
@@ -130,7 +126,10 @@ const KBCreate = () => {
   }, [kb_c]);
 
   useEffect(() => {
-    getKbList();
+    if (kbList && kbList.length === 0 && modelStatus) setOpen(true);
+  }, [kbList, modelStatus]);
+
+  useEffect(() => {
     dispatch(setKbC(false));
   }, [pathname, modelStatus]);
 
@@ -161,8 +160,8 @@ const KBCreate = () => {
         closable={false}
         cancelText='关闭'
       >
-        <Card sx={{ p: 2, fontSize: 14, bgcolor: 'background.paper2' }}>
-          <Box sx={{ color: 'text.auxiliary', mb: 1 }}>
+        <Card sx={{ p: 2, fontSize: 14, bgcolor: 'background.paper3' }}>
+          <Box sx={{ color: 'text.tertiary', mb: 1 }}>
             打开以下地址访问门户网站
           </Box>
           {http && (
@@ -174,7 +173,7 @@ const KBCreate = () => {
                 }
                 target='_blank'
                 sx={{
-                  fontFamily: 'Gbold',
+                  fontWeight: 700,
                   color: 'text.primary',
                   '&:hover': { color: 'primary.main' },
                 }}
@@ -194,7 +193,7 @@ const KBCreate = () => {
                 }
                 target='_blank'
                 sx={{
-                  fontFamily: 'Gbold',
+                  fontWeight: 700,
                   color: 'text.primary',
                   '&:hover': { color: 'primary.main' },
                 }}
@@ -216,10 +215,10 @@ const KBCreate = () => {
         }}
         okText={'创建'}
         onOk={handleSubmit(onSubmit)}
-        disableEscapeKeyDown={kbList.length === 0}
-        title={'创建知识库'}
-        closable={kbList.length > 0}
-        showCancel={kbList.length > 0}
+        disableEscapeKeyDown={(kbList || []).length === 0}
+        title='创建 Wiki 站'
+        closable={(kbList || []).length > 0}
+        showCancel={(kbList || []).length > 0}
         okButtonProps={{ loading, disabled: !(http || https) }}
       >
         <Box sx={{ mt: 1 }}>
@@ -252,7 +251,7 @@ const KBCreate = () => {
             my: 2,
             fontSize: 14,
             lineHeight: '32px',
-            color: 'text.auxiliary',
+            color: 'text.tertiary',
           }}
         >
           服务监听方式
@@ -262,7 +261,7 @@ const KBCreate = () => {
             component={'label'}
             sx={{ width: 136, flexShrink: 0, cursor: 'pointer', fontSize: 14 }}
           >
-            域名
+            域名或 IP
           </Box>
           <Controller
             control={control}
@@ -301,7 +300,7 @@ const KBCreate = () => {
               flexShrink: 0,
               cursor: 'pointer',
               fontSize: 14,
-              color: http ? 'text.primary' : 'text.auxiliary',
+              color: http ? 'text.primary' : 'text.tertiary',
             }}
           >
             启用 HTTP
@@ -348,7 +347,7 @@ const KBCreate = () => {
               flexShrink: 0,
               cursor: 'pointer',
               fontSize: 14,
-              color: https ? 'text.primary' : 'text.auxiliary',
+              color: https ? 'text.primary' : 'text.tertiary',
             }}
           >
             启用 HTTPS

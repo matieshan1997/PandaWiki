@@ -13,8 +13,8 @@
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainConversationMessage,
+  DomainPWResponse,
   DomainPaginatedResultArrayDomainConversationMessageListItem,
-  DomainResponse,
   GetApiV1ConversationMessageDetailParams,
   GetApiV1ConversationMessageListParams,
 } from "./types";
@@ -26,7 +26,7 @@ import {
  * @name GetApiV1ConversationMessageDetail
  * @summary Get message detail
  * @request GET:/api/v1/conversation/message/detail
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainConversationMessage,
 
 })` OK
@@ -37,7 +37,7 @@ export const getApiV1ConversationMessageDetail = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainConversationMessage;
     }
   >({
@@ -56,7 +56,7 @@ export const getApiV1ConversationMessageDetail = (
  * @name GetApiV1ConversationMessageList
  * @summary GetMessageFeedBackList
  * @request GET:/api/v1/conversation/message/list
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainPaginatedResultArrayDomainConversationMessageListItem,
 
 })` MessageList
@@ -67,7 +67,7 @@ export const getApiV1ConversationMessageList = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainPaginatedResultArrayDomainConversationMessageListItem;
     }
   >({

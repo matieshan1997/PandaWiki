@@ -1,4 +1,5 @@
-import { statGeoCount, TrendData } from '@/api';
+import { TrendData } from '@/api';
+import { getApiV1StatGeoCount } from '@/request/Stat';
 import Nodata from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import MapChart from '@/components/MapChart';
@@ -13,8 +14,9 @@ const AreaMap = ({ tab }: { tab: ActiveTab }) => {
   const [list, setList] = useState<TrendData[]>([]);
 
   useEffect(() => {
-    statGeoCount({ kb_id }).then(res => {
-      const list = Object.entries(res)
+    if (!kb_id) return;
+    getApiV1StatGeoCount({ kb_id, day: tab }).then(res => {
+      const list = Object.entries(res as Record<string, number>)
         .map(([key, value]) => {
           const [country, province, city] = key.split('|');
           return {
@@ -47,7 +49,7 @@ const AreaMap = ({ tab }: { tab: ActiveTab }) => {
     <Card
       sx={{
         flex: 1,
-        bgcolor: 'background.paper2',
+        bgcolor: 'background.paper3',
         position: 'relative',
       }}
     >
@@ -71,7 +73,7 @@ const AreaMap = ({ tab }: { tab: ActiveTab }) => {
           fontSize: 12,
           width: 100,
           textAlign: 'right',
-          color: 'text.auxiliary',
+          color: 'text.tertiary',
         }}
       >
         {TimeList.find(item => item.value === tab)?.label || ''}
@@ -100,7 +102,7 @@ const AreaMap = ({ tab }: { tab: ActiveTab }) => {
                 sx={{ fontSize: 12 }}
               >
                 <Stack>{it.name}</Stack>
-                <Box sx={{ fontFamily: 'Gbold' }}>{it.count}</Box>
+                <Box sx={{ fontWeight: 700 }}>{it.count}</Box>
               </Stack>
             ))}
           </Stack>

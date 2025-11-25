@@ -1,92 +1,155 @@
-import {
-  getNodeList,
-  ImportDocType,
-  ITreeItem,
-  NodeListFilterData,
-  NodeListItem,
-} from '@/api';
+import { ITreeItem, NodeListFilterData } from '@/api';
 import Card from '@/components/Card';
-import DragTree from '@/components/Drag/DragTree';
+import Cascader from '@/components/Cascader';
+import DragTree, { type DragTreeHandle } from '@/components/Drag/DragTree';
 import {
   TreeMenuItem,
   TreeMenuOptions,
 } from '@/components/Drag/DragTree/TreeMenu';
 import { useURLSearchParams } from '@/hooks';
-import { useAppSelector } from '@/store';
+import { getApiV1NodeList } from '@/request/Node';
+import {
+  ConstsCrawlerSource,
+  ConstsNodeRagInfoStatus,
+  DomainNodeListItemResp,
+} from '@/request/types';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { setIsRefreshDocList } from '@/store/slices/config';
 import { addOpacityToColor } from '@/utils';
-import { convertToTree } from '@/utils/drag';
+import { collapseAllFolders, convertToTree } from '@/utils/drag';
+import { message } from '@ctzhian/ui';
 import {
   Box,
   Button,
+  ButtonBase,
   Checkbox,
   IconButton,
   Stack,
   useTheme,
 } from '@mui/material';
-import { Icon, MenuSelect } from 'ct-mui';
-import { useCallback, useEffect, useState } from 'react';
+import { IconGengduo } from '@panda-wiki/icons';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import VersionPublish from '../release/components/VersionPublish';
-import DocAdd from './component/DocAdd';
+import AddDocBtn from './component/AddDocBtn';
+import AddDocByType from './component/AddDocByType';
 import DocDelete from './component/DocDelete';
+import DocPropertiesModal from './component/DocPropertiesModal';
 import DocSearch from './component/DocSearch';
 import DocStatus from './component/DocStatus';
 import DocSummary from './component/DocSummary';
-import ImportDoc from './component/ImportDoc';
 import MoveDocs from './component/MoveDocs';
+import RagErrorReStart from './component/RagErrorReStart';
 import Summary from './component/Summary';
 
 const Content = () => {
-  const { kb_id } = useAppSelector(state => state.config);
+  const { kb_id, isRefreshDocList, kbList } = useAppSelector(
+    state => state.config,
+  );
+  const dispatch = useAppDispatch();
   const theme = useTheme();
+  const dragTreeRef = useRef<DragTreeHandle>(null);
 
   const [searchParams] = useURLSearchParams();
   const search = searchParams.get('search') || '';
   const [supportSelect, setBatchOpen] = useState(false);
+  const [wikiUrl, setWikiUrl] = useState<string>('');
 
+  const [ragReStartCount, setRagStartCount] = useState(0);
+  const [ragIds, setRagIds] = useState<string[]>([]);
+  const [ragOpen, setRagOpen] = useState(false);
   const [publish, setPublish] = useState({
-    published: 0,
+    // published: 0,
     unpublished: 0,
   });
-  const [list, setList] = useState<NodeListItem[]>([]);
+  const [publishIds, setPublishIds] = useState<string[]>([]);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [list, setList] = useState<DomainNodeListItemResp[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [data, setData] = useState<ITreeItem[]>([]);
-  const [opraData, setOpraData] = useState<NodeListItem[]>([]);
-  const [statusOpen, setStatusOpen] = useState<'private' | 'public' | null>(
-    null,
-  );
+  const [opraData, setOpraData] = useState<DomainNodeListItemResp[]>([]);
+  const [statusOpen, setStatusOpen] = useState<'delete' | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [moreSummaryOpen, setMoreSummaryOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [urlOpen, setUrlOpen] = useState(false);
-  const [publishIds, setPublishIds] = useState<string[]>([]);
-  const [publishOpen, setPublishOpen] = useState(false);
-  const [key, setKey] = useState<ImportDocType>('URL');
+  const [key, setKey] = useState<ConstsCrawlerSource | null>(null);
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
+  const [isBatch, setIsBatch] = useState(false);
 
-  const handleUrl = (item: ITreeItem, key: ImportDocType) => {
+  // 从树形数据中查找节点并转换为列表格式
+  const findItemInTree = (
+    items: ITreeItem[],
+    id: string,
+  ): DomainNodeListItemResp | null => {
+    for (const item of items) {
+      if (item.id === id) {
+        // 将 ITreeItem 转换为 DomainNodeListItemResp
+        return {
+          id: item.id,
+          name: item.name,
+          emoji: item.emoji,
+          parent_id: item.parentId,
+          summary: item.summary,
+          type: item.type,
+          status: item.status,
+          permissions: item.permissions,
+          updated_at: item.updated_at,
+        } as DomainNodeListItemResp;
+      }
+      if (item.children?.length) {
+        const found = findItemInTree(item.children as ITreeItem[], id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // 优先从 list 查找，如果找不到则从 data 树中查找（用于新创建的节点）
+  const getOperationData = (item: ITreeItem): DomainNodeListItemResp[] => {
+    const fromList = list.filter(it => it.id === item.id);
+    if (fromList.length > 0) {
+      return fromList;
+    }
+    // 从树中查找
+    const fromTree = findItemInTree(data, item.id);
+    return fromTree ? [fromTree] : [];
+  };
+
+  const handleUrl = (item: ITreeItem, key: ConstsCrawlerSource) => {
     setKey(key);
     setUrlOpen(true);
-    setOpraData(list.filter(it => it.id === item.id));
+    setOpraData(getOperationData(item));
   };
 
   const handleDelete = (item: ITreeItem) => {
     setDeleteOpen(true);
-    setOpraData(list.filter(it => it.id === item.id));
-  };
-
-  const handleSummary = (item: ITreeItem) => {
-    setSummaryOpen(true);
-    setOpraData(list.filter(it => it.id === item.id));
-  };
-
-  const handleStatus = (item: ITreeItem, status: 'public' | 'private') => {
-    setStatusOpen(status);
-    setOpraData(list.filter(it => it.id === item.id));
+    setOpraData(getOperationData(item));
   };
 
   const handlePublish = (item: ITreeItem) => {
     setPublishOpen(true);
     setPublishIds([item.id]);
+  };
+
+  const handleRestudy = (item: ITreeItem) => {
+    setRagOpen(true);
+    setRagIds([item.id]);
+  };
+
+  const handleProperties = (item: ITreeItem) => {
+    setPropertiesOpen(true);
+    setOpraData(getOperationData(item));
+    setIsBatch(false);
+  };
+
+  const handleFrontDoc = (id: string) => {
+    const currentNode = list.find(item => item.id === id);
+    if (currentNode?.status !== 2 && !currentNode?.publisher_id) {
+      message.warning('当前文档未发布，无法查看前台文档');
+      return;
+    }
+    window.open(`${wikiUrl}/node/${id}`, '_blank');
   };
 
   const menu = (opra: TreeMenuOptions): TreeMenuItem[] => {
@@ -99,70 +162,100 @@ const Content = () => {
               key: 'folder',
               onClick: () => createItem(1),
             },
-            { label: '创建文档', key: 'doc', onClick: () => createItem(2) },
+            {
+              label: '创建文档',
+              key: 'doc',
+              children: [
+                {
+                  label: '创建富文本',
+                  key: 'rich_text',
+                  onClick: () => createItem(2, 'html'),
+                },
+                {
+                  label: '创建 Markdown',
+                  key: 'md',
+                  onClick: () => createItem(2, 'md'),
+                },
+              ],
+            },
             {
               label: '导入文档',
-              key: 'third',
+              key: 'next-line',
               children: [
                 {
                   label: '通过离线文件导入',
-                  key: 'OfflineFile',
-                  onClick: () => handleUrl(item, 'OfflineFile'),
+                  key: ConstsCrawlerSource.CrawlerSourceFile,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceFile),
                 },
                 {
                   label: '通过 URL 导入',
-                  key: 'URL',
-                  onClick: () => handleUrl(item, 'URL'),
+                  key: ConstsCrawlerSource.CrawlerSourceUrl,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceUrl),
                 },
                 {
                   label: '通过 RSS 导入',
-                  key: 'RSS',
-                  onClick: () => handleUrl(item, 'RSS'),
+                  key: ConstsCrawlerSource.CrawlerSourceRSS,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceRSS),
                 },
                 {
                   label: '通过 Sitemap 导入',
-                  key: 'Sitemap',
-                  onClick: () => handleUrl(item, 'Sitemap'),
+                  key: ConstsCrawlerSource.CrawlerSourceSitemap,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceSitemap),
                 },
                 {
                   label: '通过 Notion 导入',
-                  key: 'Notion',
-                  onClick: () => handleUrl(item, 'Notion'),
+                  key: ConstsCrawlerSource.CrawlerSourceNotion,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceNotion),
                 },
                 {
                   label: '通过 Epub 导入',
-                  key: 'Epub',
-                  onClick: () => handleUrl(item, 'Epub'),
+                  key: ConstsCrawlerSource.CrawlerSourceEpub,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceEpub),
                 },
                 {
                   label: '通过 Wiki.js 导入',
-                  key: 'Wiki.js',
-                  onClick: () => handleUrl(item, 'Wiki.js'),
+                  key: ConstsCrawlerSource.CrawlerSourceWikijs,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceWikijs),
                 },
                 {
                   label: '通过 语雀 导入',
-                  key: 'Yuque',
-                  onClick: () => handleUrl(item, 'Yuque'),
+                  key: ConstsCrawlerSource.CrawlerSourceYuque,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceYuque),
                 },
                 {
                   label: '通过 思源笔记 导入',
-                  key: 'Siyuan',
-                  onClick: () => handleUrl(item, 'Siyuan'),
+                  key: ConstsCrawlerSource.CrawlerSourceSiyuan,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceSiyuan),
                 },
                 {
                   label: '通过 MinDoc 导入',
-                  key: 'MinDoc',
-                  onClick: () => handleUrl(item, 'MinDoc'),
+                  key: ConstsCrawlerSource.CrawlerSourceMindoc,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceMindoc),
                 },
                 {
                   label: '通过飞书文档导入',
-                  key: 'Feishu',
-                  onClick: () => handleUrl(item, 'Feishu'),
+                  key: ConstsCrawlerSource.CrawlerSourceFeishu,
+                  onClick: () =>
+                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceFeishu),
                 },
                 {
                   label: '通过 Confluence 导入',
-                  key: 'Confluence',
-                  onClick: () => handleUrl(item, 'Confluence'),
+                  key: ConstsCrawlerSource.CrawlerSourceConfluence,
+                  onClick: () =>
+                    handleUrl(
+                      item,
+                      ConstsCrawlerSource.CrawlerSourceConfluence,
+                    ),
                 },
               ],
             },
@@ -170,24 +263,6 @@ const Content = () => {
         : []),
       ...(item.type === 2
         ? [
-            ...(item.visibility === 1
-              ? [
-                  {
-                    label: '设为公开',
-                    key: 'public',
-                    onClick: () => handleStatus(item, 'public'),
-                  },
-                ]
-              : []),
-            ...(item.visibility === 2
-              ? [
-                  {
-                    label: '设为私有',
-                    key: 'private',
-                    onClick: () => handleStatus(item, 'private'),
-                  },
-                ]
-              : []),
             ...(item.status === 1
               ? [
                   {
@@ -197,10 +272,43 @@ const Content = () => {
                   },
                 ]
               : []),
+            // {
+            //   label: item.summary ? '查看摘要' : '生成摘要',
+            //   key: 'summary',
+            //   onClick: () => handleSummary(item),
+            // },
+          ]
+        : []),
+      ...(item.type === 2 &&
+      item.rag_status &&
+      [
+        ConstsNodeRagInfoStatus.NodeRagStatusBasicFailed,
+        ConstsNodeRagInfoStatus.NodeRagStatusEnhanceFailed,
+        ConstsNodeRagInfoStatus.NodeRagStatusBasicPending,
+      ].includes(item.rag_status)
+        ? [
             {
-              label: item.summary ? '查看摘要' : '生成摘要',
-              key: 'summary',
-              onClick: () => handleSummary(item),
+              label:
+                item.rag_status ===
+                ConstsNodeRagInfoStatus.NodeRagStatusBasicPending
+                  ? '学习文档'
+                  : '重新学习',
+              key: 'restudy',
+              onClick: () => handleRestudy(item),
+            },
+          ]
+        : []),
+      ...(item.type === 2
+        ? [
+            {
+              label: '文档属性',
+              key: 'properties',
+              onClick: () => handleProperties(item),
+            },
+            {
+              label: '前台查看',
+              key: 'front_doc',
+              onClick: () => handleFrontDoc(item.id),
             },
           ]
         : []),
@@ -211,19 +319,75 @@ const Content = () => {
     ];
   };
 
+  // 收集当前已展开的文件夹 id（collapsed === false）
+  const collectOpenFolderIds = useCallback(
+    (items: ITreeItem[]): Set<string> => {
+      const openIds = new Set<string>();
+      const dfs = (nodes: ITreeItem[]) => {
+        nodes.forEach(n => {
+          if (n.type === 1 && n.collapsed === false) openIds.add(n.id);
+          if (n.children?.length) dfs(n.children as ITreeItem[]);
+        });
+      };
+      dfs(items);
+      return openIds;
+    },
+    [],
+  );
+
+  // 重新打开指定的文件夹 ids
+  const reopenFolders = useCallback(
+    (items: ITreeItem[], openIds: Set<string>): ITreeItem[] => {
+      return items.map(n => {
+        const children = n.children?.length
+          ? reopenFolders(n.children as ITreeItem[], openIds)
+          : n.children;
+        const collapsed =
+          n.type === 1 && openIds.has(n.id) ? false : n.collapsed;
+        return { ...n, collapsed, children } as ITreeItem;
+      });
+    },
+    [],
+  );
+
   const getData = useCallback(() => {
     const params: NodeListFilterData = { kb_id };
     if (search) params.search = search;
-    getNodeList(params).then(res => {
+    // 记录当前展开的文件夹
+    const openIds = collectOpenFolderIds(data);
+    getApiV1NodeList(params).then(res => {
       setList(res || []);
       setPublish({
         unpublished: res.filter(it => it.status === 1).length,
-        published: res.filter(it => it.status === 2).length,
       });
-      const v = convertToTree(res || []);
-      setData(v);
+      setRagStartCount(
+        res.filter(
+          it =>
+            it.type === 2 &&
+            it.rag_info?.status &&
+            [
+              ConstsNodeRagInfoStatus.NodeRagStatusBasicFailed,
+              ConstsNodeRagInfoStatus.NodeRagStatusEnhanceFailed,
+              ConstsNodeRagInfoStatus.NodeRagStatusBasicPending,
+            ].includes(it.rag_info.status),
+        ).length,
+      );
+      const collapsedAll = collapseAllFolders(convertToTree(res || []), true);
+      const next = openIds.size
+        ? reopenFolders(collapsedAll, openIds)
+        : collapsedAll;
+      setData(next);
     });
-  }, [search, kb_id]);
+  }, [search, kb_id, data, collectOpenFolderIds, reopenFolders]);
+
+  // 本地更新数据，不重新请求
+  const updateLocalData = useCallback((newData: ITreeItem[]) => {
+    setData([...newData]);
+  }, []);
+
+  const currentKb = useMemo(() => {
+    return kbList?.find(item => item.id === kb_id);
+  }, [kbList, kb_id]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -238,9 +402,35 @@ const Content = () => {
   }, [getData, kb_id]);
 
   useEffect(() => {
+    if (currentKb?.access_settings?.base_url) {
+      setWikiUrl(currentKb.access_settings.base_url);
+      return;
+    }
+    const host = currentKb?.access_settings?.hosts?.[0] || '';
+    if (host === '') return;
+    const { ssl_ports = [], ports = [] } = currentKb?.access_settings || {};
+
+    if (ssl_ports) {
+      if (ssl_ports.includes(443)) setWikiUrl(`https://${host}`);
+      else if (ssl_ports.length > 0)
+        setWikiUrl(`https://${host}:${ssl_ports[0]}`);
+    } else if (ports) {
+      if (ports.includes(80)) setWikiUrl(`http://${host}`);
+      else if (ports.length > 0) setWikiUrl(`http://${host}:${ports[0]}`);
+    }
+  }, [currentKb]);
+
+  useEffect(() => {
     if (kb_id) getData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, kb_id]);
+
+  useEffect(() => {
+    if (isRefreshDocList) {
+      getData();
+      dispatch(setIsRefreshDocList(false));
+    }
+  }, [isRefreshDocList, getData]);
 
   return (
     <>
@@ -268,24 +458,85 @@ const Content = () => {
                     ml: 2,
                   }}
                 >
-                  {publish.unpublished} 个 文档/文件夹 未发布，
+                  {publish.unpublished} 个 文档/文件夹未发布，
                 </Box>
-                <Button
-                  size='small'
-                  sx={{ minWidth: 0, p: 0, fontSize: 12 }}
+                <ButtonBase
+                  disableRipple
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 400,
+                    color: 'primary.main',
+                  }}
                   onClick={() => {
                     setPublishOpen(true);
                   }}
                 >
                   去发布
-                </Button>
+                </ButtonBase>
+              </>
+            )}
+            {ragReStartCount > 0 && (
+              <>
+                <Box
+                  sx={{
+                    color: 'error.main',
+                    fontSize: 12,
+                    fontWeight: 'normal',
+                    ml: 2,
+                  }}
+                >
+                  {ragReStartCount} 个文档未学习，
+                </Box>
+                <ButtonBase
+                  disableRipple
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 400,
+                    color: 'primary.main',
+                  }}
+                  onClick={() => {
+                    setRagOpen(true);
+                  }}
+                >
+                  去学习
+                </ButtonBase>
               </>
             )}
           </Stack>
           <Stack direction={'row'} alignItems={'center'} gap={2}>
             <DocSearch />
-            <DocAdd refresh={getData} />
-            <MenuSelect
+            <AddDocBtn
+              createLocal={node => {
+                setData(prev => {
+                  // 追加到根末尾
+                  const next = [
+                    ...prev,
+                    {
+                      id: node.id,
+                      name: node.name,
+                      level: 0,
+                      order: prev.length
+                        ? (prev[prev.length - 1].order ?? 0) + 1
+                        : 0,
+                      emoji: node.emoji,
+                      content_type: node.content_type,
+                      parentId: undefined,
+                      children: node.type === 1 ? [] : undefined,
+                      type: node.type,
+                      status: 1,
+                    } as ITreeItem,
+                  ];
+                  return next;
+                });
+              }}
+              scrollTo={id => {
+                // 滚动到新创建项
+                setTimeout(() => {
+                  dragTreeRef.current?.scrollToItem(id);
+                }, 120);
+              }}
+            />
+            <Cascader
               list={[
                 {
                   key: 'batch',
@@ -319,7 +570,7 @@ const Content = () => {
               context={
                 <Box>
                   <IconButton size='small'>
-                    <Icon type='icon-gengduo' />
+                    <IconGengduo sx={{ fontSize: '16px' }} />
                   </IconButton>
                 </Box>
               }
@@ -327,13 +578,16 @@ const Content = () => {
           </Stack>
         </Stack>
         {supportSelect && (
-          <Stack direction={'row'} alignItems={'center'} sx={{ px: 2, mb: 2 }}>
+          <Stack
+            direction={'row'}
+            alignItems={'center'}
+            sx={{ pr: 2, pl: 6.5, lineHeight: '35px' }}
+          >
             <Checkbox
               sx={{
                 color: 'text.disabled',
                 width: '35px',
                 height: '35px',
-                mt: '-1px',
               }}
               checked={selected.length === list.length}
               onChange={e => {
@@ -342,48 +596,25 @@ const Content = () => {
                   setSelected([]);
                   setOpraData([]);
                 } else {
-                  setSelected(list.map(item => item.id));
+                  setSelected(list.map(item => item.id!));
                   setOpraData(list);
                 }
               }}
             />
             {selected.length > 0 ? (
               <>
-                <Box sx={{ fontSize: 14, color: 'text.secondary', mr: 2 }}>
+                <Box sx={{ fontSize: 13, color: 'text.secondary', mr: 2 }}>
                   已选中 {selected.length} 项
                 </Box>
                 <Stack direction={'row'} alignItems={'center'} gap={1}>
                   <Button
                     size='small'
-                    sx={{ minWidth: 0, p: 0 }}
-                    onClick={() => {
-                      setStatusOpen('public');
-                      setOpraData(
-                        list.filter(item => selected.includes(item.id)),
-                      );
-                    }}
-                  >
-                    设为公开
-                  </Button>
-                  <Button
-                    size='small'
-                    sx={{ minWidth: 0, p: 0 }}
-                    onClick={() => {
-                      setStatusOpen('private');
-                      setOpraData(
-                        list.filter(item => selected.includes(item.id)),
-                      );
-                    }}
-                  >
-                    设为私有
-                  </Button>
-                  <Button
-                    size='small'
-                    sx={{ minWidth: 0, p: 0 }}
+                    color='primary'
+                    sx={{ minWidth: 0, p: 0, lineHeight: 1 }}
                     onClick={() => {
                       setMoreSummaryOpen(true);
                       setOpraData(
-                        list.filter(item => selected.includes(item.id)),
+                        list.filter(item => selected.includes(item.id!)),
                       );
                     }}
                   >
@@ -391,11 +622,12 @@ const Content = () => {
                   </Button>
                   <Button
                     size='small'
-                    sx={{ minWidth: 0, p: 0 }}
+                    color='primary'
+                    sx={{ minWidth: 0, p: 0, lineHeight: 1 }}
                     onClick={() => {
                       setMoveOpen(true);
                       setOpraData(
-                        list.filter(item => selected.includes(item.id)),
+                        list.filter(item => selected.includes(item.id!)),
                       );
                     }}
                   >
@@ -403,24 +635,45 @@ const Content = () => {
                   </Button>
                   <Button
                     size='small'
-                    sx={{ minWidth: 0, p: 0 }}
+                    color='primary'
+                    sx={{ minWidth: 0, p: 0, lineHeight: 1 }}
                     onClick={() => {
                       setDeleteOpen(true);
                       setOpraData(
-                        list.filter(item => selected.includes(item.id)),
+                        list.filter(item => selected.includes(item.id!)),
                       );
                     }}
                   >
                     批量删除
                   </Button>
+                  <Button
+                    size='small'
+                    color='primary'
+                    sx={{ minWidth: 0, p: 0, lineHeight: 1 }}
+                    onClick={() => {
+                      setPropertiesOpen(true);
+                      setIsBatch(true);
+                      setOpraData(
+                        list.filter(item => selected.includes(item.id!)),
+                      );
+                    }}
+                  >
+                    批量设置权限
+                  </Button>
                 </Stack>
               </>
             ) : (
-              <Box sx={{ fontSize: 14, color: 'text.secondary' }}>全选</Box>
+              <Box sx={{ fontSize: 13, color: 'text.secondary' }}>全选</Box>
             )}
             <Button
               size='small'
-              sx={{ color: 'text.secondary', minWidth: 0, p: 0, ml: 2 }}
+              sx={{
+                color: 'text.secondary',
+                minWidth: 0,
+                p: 0,
+                ml: 2,
+                lineHeight: 1,
+              }}
               onClick={() => {
                 setSelected([]);
                 setBatchOpen(false);
@@ -432,7 +685,9 @@ const Content = () => {
         )}
         <Stack
           sx={{
-            height: 'calc(100vh - 148px)',
+            height: supportSelect
+              ? 'calc(100vh - 183px)'
+              : 'calc(100vh - 148px)',
             overflow: 'hidden',
             overflowY: 'auto',
             px: 2,
@@ -440,14 +695,16 @@ const Content = () => {
           }}
         >
           <DragTree
+            ref={dragTreeRef}
             data={data}
             menu={menu}
-            refresh={getData}
+            updateData={updateLocalData}
             selected={selected}
             onSelectChange={value => {
               setSelected(value);
             }}
             supportSelect={supportSelect}
+            virtualized={true}
           />
         </Stack>
       </Card>
@@ -460,18 +717,35 @@ const Content = () => {
           setBatchOpen(false);
         }}
         data={opraData}
-        refresh={getData}
-      />
-      <ImportDoc
-        type={key}
-        open={urlOpen}
-        onCancel={() => {
-          setUrlOpen(false);
-          setOpraData([]);
+        onDeleted={ids => {
+          // 本地删除：从 data 移除这些 id 及其所有子节点
+          const removeIds = new Set(ids);
+          const removeDeep = (items: ITreeItem[]): ITreeItem[] => {
+            const result: ITreeItem[] = [];
+            for (const it of items) {
+              if (removeIds.has(it.id)) continue;
+              const children = it.children?.length
+                ? removeDeep(it.children as ITreeItem[])
+                : undefined;
+              result.push({ ...it, children });
+            }
+            return result;
+          };
+          setData(prev => removeDeep(prev));
         }}
-        parentId={opraData[0]?.id}
-        refresh={getData}
       />
+      {key && (
+        <AddDocByType
+          type={key}
+          open={urlOpen}
+          onCancel={() => {
+            setUrlOpen(false);
+            setOpraData([]);
+          }}
+          parentId={opraData[0]?.id || null}
+          refresh={getData}
+        />
+      )}
       <Summary
         data={opraData[0]}
         kb_id={kb_id}
@@ -493,7 +767,7 @@ const Content = () => {
         }}
       />
       <DocStatus
-        status={statusOpen || 'public'}
+        status={statusOpen || 'delete'}
         data={opraData}
         kb_id={kb_id}
         open={!!statusOpen}
@@ -512,15 +786,130 @@ const Content = () => {
         }}
         refresh={getData}
       />
+      <RagErrorReStart
+        open={ragOpen}
+        defaultSelected={ragIds}
+        onClose={() => {
+          setRagOpen(false);
+          setRagIds([]);
+        }}
+        refresh={getData}
+      />
       <MoveDocs
         open={moveOpen}
         data={list}
         selected={opraData}
-        refresh={getData}
+        onMoved={({ ids, parentId }) => {
+          // 本地移动：将 ids 对应节点移动到 parentId 下
+          setData(prev => {
+            // 1) 取出所有被移动节点
+            const idSet = new Set(ids);
+            const picked: ITreeItem[] = [];
+            const removePicked = (items: ITreeItem[]): ITreeItem[] => {
+              const res: ITreeItem[] = [];
+              for (const it of items) {
+                if (idSet.has(it.id)) {
+                  picked.push({ ...it });
+                  continue;
+                }
+                const children = it.children?.length
+                  ? removePicked(it.children as ITreeItem[])
+                  : it.children;
+                res.push({ ...it, children });
+              }
+              return res;
+            };
+            let next = removePicked(prev);
+
+            // 2) 找到目标父节点（空字符串或 'root' 表示根）
+            const findNode = (
+              items: ITreeItem[],
+              id: string,
+            ): ITreeItem | null => {
+              for (const it of items) {
+                if (it.id === id) return it;
+                if (it.children?.length) {
+                  const f = findNode(it.children as ITreeItem[], id);
+                  if (f) return f;
+                }
+              }
+              return null;
+            };
+
+            if (!parentId) {
+              // 移动到根
+              next = [
+                ...next,
+                ...picked.map(p => ({ ...p, parentId: undefined })),
+              ];
+            } else {
+              const parent = findNode(next, parentId);
+              if (parent) {
+                const children =
+                  (parent.children as ITreeItem[] | undefined) ?? [];
+                parent.children = [
+                  ...children,
+                  ...picked.map(p => ({ ...p, parentId: parentId })),
+                ];
+                // 展开目标父及其祖先
+                parent.collapsed = false;
+                const expandAncestors = (
+                  items: ITreeItem[],
+                  targetId: string,
+                ) => {
+                  const dfs = (
+                    nodes: ITreeItem[],
+                    trail: ITreeItem[],
+                  ): boolean => {
+                    for (const n of nodes) {
+                      const nextTrail = [...trail, n];
+                      if (n.id === targetId) {
+                        nextTrail.forEach(t => {
+                          if (t.type === 1) t.collapsed = false;
+                        });
+                        return true;
+                      }
+                      if (
+                        n.children?.length &&
+                        dfs(n.children as ITreeItem[], nextTrail)
+                      )
+                        return true;
+                    }
+                    return false;
+                  };
+                  dfs(items, []);
+                };
+                expandAncestors(next, parentId);
+              }
+            }
+            return [...next];
+          });
+          // 滚动到第一个移动的节点位置
+          setTimeout(() => {
+            const targetId = ids[0];
+            if (targetId) {
+              dragTreeRef.current?.scrollToItem(targetId);
+            }
+          }, 120);
+        }}
         onClose={() => {
           setMoveOpen(false);
           setOpraData([]);
         }}
+      />
+      <DocPropertiesModal
+        open={propertiesOpen}
+        onCancel={() => {
+          setPropertiesOpen(false);
+          setOpraData([]);
+        }}
+        onOk={() => {
+          getData();
+          setPropertiesOpen(false);
+          setOpraData([]);
+        }}
+        data={opraData}
+        isBatch={isBatch}
       />
     </>
   );

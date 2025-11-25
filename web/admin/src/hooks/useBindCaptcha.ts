@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { useEffect, useRef, useState } from 'react';
 
 export function useBindCaptcha(
@@ -29,7 +28,7 @@ export function useBindCaptcha(
             setToken(data);
             resolveRef.current(data);
           } else {
-            Message.error('验证失败');
+            message.error('验证失败');
           }
         }
       },

@@ -1,291 +1,253 @@
 'use client';
 
-import NotData from '@/assets/images/nodata.png';
-import { KBDetail, NodeDetail } from '@/assets/type';
-import { FooterProvider } from '@/components/footer';
-import Header from '@/components/header';
-import { VisitSceneNode } from '@/constant';
+import DocFab from '@/components/docFab';
+import { usePathname } from 'next/navigation';
+import ErrorComponent from '@/components/error';
+import { DocWidth } from '@/constant';
+import useCopy from '@/hooks/useCopy';
 import { useStore } from '@/provider';
-import { getShareV1NodeDetail } from '@/request/ShareNode';
-import { postShareV1StatPage } from '@/request/ShareStat';
+import { ConstsCopySetting } from '@/request/types';
+import { TocList, useTiptap } from '@ctzhian/tiptap';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { Box, Fab, Stack, Zoom } from '@mui/material';
-import { TocList, useTiptap } from '@yu-cq/tiptap';
-import Image from 'next/image';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Catalog from './Catalog';
-import CatalogH5 from './CatalogH5';
+import { Box, Fab, Skeleton, Zoom } from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
 import DocAnchor from './DocAnchor';
 import DocContent from './DocContent';
 
 const Doc = ({
-  node: defaultNode,
-  kbInfo,
-  commentList,
+  node,
+  error,
 }: {
-  node?: NodeDetail;
-  kbInfo?: KBDetail;
-  commentList?: any[];
+  node?: any;
+  error?: Partial<Error> & { digest?: string } & { code?: number | string };
 }) => {
-  const { id = '' }: { id: string } = useParams();
-
-  const [docId, setDocId] = useState(id);
-  const [firstRequest, setFirstRequest] = useState(true);
-  const {
-    nodeList = [],
-    kbDetail,
-    mobile = false,
-    catalogShow,
-    catalogWidth,
-  } = useStore();
-
-  const footerSetting = kbDetail?.settings?.footer_settings;
-  const [footerHeight, setFooterHeight] = useState(0);
+  const { kbDetail, mobile, catalogWidth } = useStore();
+  const [loading, setLoading] = useState(true);
   const [headings, setHeadings] = useState<TocList>([]);
-
-  const [node, setNode] = useState<NodeDetail | undefined>(defaultNode);
+  const [characterCount, setCharacterCount] = useState(0);
+  const pathname = usePathname();
+  const isMarkdown = useMemo(() => {
+    return node?.meta?.content_type === 'md';
+  }, [node?.meta?.content_type]);
 
   const editorRef = useTiptap({
     content: node?.content || '',
     editable: false,
+    contentType: isMarkdown ? 'markdown' : 'html',
     immediatelyRender: false,
     onTocUpdate: (toc: TocList) => {
       setHeadings(toc);
     },
+    onBeforeCreate: () => {
+      setLoading(true);
+    },
+    onCreate: ({ editor }) => {
+      setLoading(false);
+      setCharacterCount((editor.storage as any).characterCount.characters());
+    },
   });
+
+  const docWidth = useMemo(() => {
+    return kbDetail?.settings?.theme_and_style?.doc_width || 'full';
+  }, [kbDetail]);
 
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  useCopy({
+    mode:
+      kbDetail?.settings?.copy_setting !== ConstsCopySetting.CopySettingDisabled
+        ? 'allow'
+        : 'disable',
+    blockContextMenuWhenDisabled: false,
+    suffix:
+      kbDetail?.settings?.copy_setting === ConstsCopySetting.CopySettingAppend
+        ? `\n\n-----------------------------------------\n内容来自 ${typeof window !== 'undefined' ? window.location.href : ''}`
+        : '',
+  });
+
   const handleScroll = () => {
-    setShowScrollTop(window.scrollY > 300);
-  };
-
-  const getFooterHeight = () => {
-    const footerElement = document.getElementById('footer');
-    if (footerElement) {
-      const height = footerElement.offsetHeight;
-      setFooterHeight(height);
-      return height;
-    }
-    return 0;
+    setShowScrollTop(
+      document.querySelector('#scroll-container')!.scrollTop > 300,
+    );
   };
 
   useEffect(() => {
-    const timer = setTimeout(getFooterHeight, 100);
-    const handleResize = () => {
-      getFooterHeight();
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [footerSetting, mobile]);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    document
+      .querySelector('#scroll-container')
+      ?.addEventListener('scroll', handleScroll);
+    return () =>
+      document
+        .querySelector('#scroll-container')
+        ?.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const getData = async (id: string) => {
-    try {
-      const result: any = await getShareV1NodeDetail({ id });
-      setNode(result);
-      document.title = kbDetail?.name + ' - ' + result?.name;
-    } catch (error) {
-      console.error('page Error fetching document content:', error);
-    }
+    document
+      .querySelector('#scroll-container')
+      ?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
-    if (node && editorRef && editorRef.editor) {
-      editorRef.editor.commands.setContent(node?.content || '')
-    }
-  }, [node, firstRequest]);
-
-  useEffect(() => {
-    if (!firstRequest) {
-      getData(docId || '');
-      postShareV1StatPage({
-        scene: VisitSceneNode,
-        node_id: docId || '',
+    if (node && editorRef) {
+      requestAnimationFrame(() => {
+        editorRef.setContent(
+          node?.content || '',
+          isMarkdown ? 'markdown' : 'html',
+        );
       });
     }
-    setFirstRequest(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [docId]);
+  }, [node]);
 
-  if (mobile) {
-    return (
-      <Box sx={{ mt: '60px', position: 'relative', zIndex: 1 }}>
-        <Box sx={{ minHeight: `calc(100vh - ${footerHeight + 1}px - 100px)` }}>
-          <Header />
-          {nodeList && <CatalogH5 nodes={nodeList} />}
-          <Box sx={{ height: 24 }} />
-          {node ? (
-            <DocContent
-              info={node}
-              editorRef={editorRef}
-              docId={docId}
-              kbInfo={kbInfo}
-              commentList={commentList}
-            />
-          ) : (
-            <Stack
-              direction='column'
-              alignItems='center'
-              justifyContent='center'
-              sx={{
-                height: 600,
-              }}
-            >
-              <Image
-                src={NotData.src}
-                alt='not data'
-                width={423}
-                height={232}
-              />
-              <Box
-                sx={{
-                  fontSize: 14,
-                  color: 'text.secondary',
-                  textAlign: 'center',
-                  mt: 2,
-                }}
-              >
-                文档不存在
-              </Box>
-            </Stack>
-          )}
-        </Box>
+  useEffect(() => {
+    document.querySelector('#scroll-container')?.scrollTo({ top: 0 });
+  }, [pathname]);
+
+  return (
+    <>
+      {error ? (
         <Box
           sx={{
-            mt: 5,
-            bgcolor: 'background.paper2',
-            ...(footerSetting?.footer_style === 'complex' && {
-              borderTop: '1px solid',
-              borderColor: 'divider',
+            height: '100%',
+            ...(docWidth === 'full' &&
+              !mobile && {
+                flexGrow: 1,
+              }),
+            ...(docWidth !== 'full' &&
+              !mobile && {
+                width: DocWidth[docWidth as keyof typeof DocWidth].value + 336,
+                maxWidth: `calc(100% - ${catalogWidth}px - 96px)`,
+              }),
+            ...(mobile && {
+              mx: 'auto',
+              marginTop: 3,
+              width: '100%',
+              px: 3,
             }),
           }}
         >
-          <FooterProvider />
+          <ErrorComponent error={error} />
         </Box>
-        <Zoom in={showScrollTop}>
-          <Fab
-            size='small'
-            onClick={scrollToTop}
-            sx={{
-              backgroundColor: 'background.paper2',
-              color: 'text.primary',
-              position: 'fixed',
-              bottom: 66,
-              right: 16,
-              zIndex: 1000,
-            }}
-          >
-            <KeyboardArrowUpIcon sx={{ fontSize: 24 }} />
-          </Fab>
-        </Zoom>
-      </Box>
-    );
-  }
-
-  return (
-    <Box
-      sx={{
-        position: 'relative',
-        bgcolor: 'background.default',
-      }}
-    >
-      <Catalog id={docId} setId={setDocId} />
-      <Header />
-      {node ? (
+      ) : (
         <>
-          <Box
-            sx={{
-              pt: '96px',
-              position: 'relative',
-              zIndex: 1,
-              minHeight: `calc(100vh - ${footerHeight + 1}px)`,
-              pb: 10,
-              bgcolor: 'background.default',
-            }}
-          >
+          {loading ? (
+            <Box
+              sx={{
+                ...(docWidth === 'full' &&
+                  !mobile && {
+                    flexGrow: 1,
+                  }),
+                ...(docWidth !== 'full' &&
+                  !mobile && {
+                    width: DocWidth[docWidth as keyof typeof DocWidth].value,
+                    maxWidth: `calc(100% - ${catalogWidth}px - 240px - 192px)`,
+                  }),
+                ...(mobile && {
+                  mx: 'auto',
+                  marginTop: 3,
+                  width: '100%',
+                  px: 3,
+                }),
+              }}
+            >
+              <Skeleton
+                variant='rounded'
+                width={'70%'}
+                height={36}
+                sx={{ mb: '10px' }}
+              />
+              <Skeleton
+                variant='rounded'
+                width={'50%'}
+                height={20}
+                sx={{ mb: 4 }}
+              />
+              {node.type === 2 && (
+                <Box
+                  sx={{
+                    mb: 6,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: '10px',
+                    bgcolor: 'background.paper3',
+                    p: '20px',
+                    fontSize: 14,
+                    lineHeight: '28px',
+                    backdropFilter: 'blur(5px)',
+                  }}
+                >
+                  <Box sx={{ fontWeight: 'bold', mb: 2, lineHeight: '22px' }}>
+                    内容摘要
+                  </Box>
+                  <Skeleton variant='rounded' height={16} sx={{ mb: 1 }} />
+                  <Skeleton variant='rounded' width={'30%'} height={16} />
+                </Box>
+              )}
+              <Skeleton
+                variant='rounded'
+                width={'20%'}
+                height={36}
+                sx={{ m: '40px 0 20px' }}
+              />
+              <Skeleton variant='rounded' height={16} sx={{ mb: 1 }} />
+              <Skeleton variant='rounded' height={16} sx={{ mb: 1 }} />
+              <Skeleton
+                variant='rounded'
+                width={'70%'}
+                height={16}
+                sx={{ mb: 2 }}
+              />
+              <Skeleton variant='rounded' height={16} sx={{ mb: 1 }} />
+              <Skeleton variant='rounded' height={16} sx={{ mb: 1 }} />
+              <Skeleton
+                variant='rounded'
+                width={'90%'}
+                height={16}
+                sx={{ mb: 1 }}
+              />
+              <Skeleton
+                variant='rounded'
+                width={'35%'}
+                height={36}
+                sx={{ m: '40px 0 20px' }}
+              />
+              <Skeleton variant='rounded' height={16} sx={{ mb: 1 }} />
+              <Skeleton variant='rounded' height={16} sx={{ mb: 1 }} />
+              <Skeleton variant='rounded' height={16} sx={{ mb: 1 }} />
+            </Box>
+          ) : (
             <DocContent
               info={node}
+              docWidth={docWidth}
               editorRef={editorRef}
-              docId={docId}
-              kbInfo={kbInfo}
-            />
-          </Box>
-          {!!editorRef && (
-            <DocAnchor
-              headings={headings}
-              footerHeight={footerHeight}
-              summary={node?.meta?.summary || ''}
+              characterCount={characterCount}
             />
           )}
-        </>
-      ) : (
-        <Stack
-          direction='column'
-          alignItems='center'
-          justifyContent='center'
-          style={{
-            marginLeft: catalogShow ? `${catalogWidth!}px` : '16px',
-          }}
-          sx={{
-            position: 'relative',
-            height: `calc(100vh - ${footerHeight + 1}px)`,
-          }}
-        >
-          {footerHeight > 0 && (
-            <>
-              <Image
-                src={NotData.src}
-                alt='not data'
-                width={423}
-                height={232}
-              />
-              <Box
+          {!mobile && <DocAnchor headings={headings} />}
+          <DocFab />
+          {!mobile && (
+            <Zoom in={showScrollTop}>
+              <Fab
+                size='small'
+                onClick={scrollToTop}
                 sx={{
-                  fontSize: 14,
-                  color: 'text.secondary',
-                  textAlign: 'center',
-                  mt: 2,
+                  position: 'fixed',
+                  bottom: 20,
+                  right: 16,
+                  zIndex: 10000,
+                  backgroundColor: 'background.paper3',
+                  color: 'text.primary',
+                  '&:hover': {
+                    backgroundColor: 'background.paper2',
+                  },
                 }}
               >
-                文档不存在
-              </Box>
-            </>
+                <KeyboardArrowUpIcon sx={{ fontSize: 24 }} />
+              </Fab>
+            </Zoom>
           )}
-        </Stack>
+        </>
       )}
-      <FooterProvider />
-      <Zoom in={showScrollTop}>
-        <Fab
-          size='small'
-          onClick={scrollToTop}
-          sx={{
-            backgroundColor: 'background.paper2',
-            color: 'text.primary',
-            position: 'fixed',
-            bottom: 66,
-            right: 16,
-            zIndex: 1000,
-          }}
-        >
-          <KeyboardArrowUpIcon sx={{ fontSize: 24 }} />
-        </Fab>
-      </Zoom>
-    </Box>
+    </>
   );
 };
 

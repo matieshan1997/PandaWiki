@@ -15,13 +15,14 @@ type AuthMiddleware interface {
 	Authorize(next echo.HandlerFunc) echo.HandlerFunc
 	ValidateUserRole(role consts.UserRole) echo.MiddlewareFunc
 	ValidateKBUserPerm(role consts.UserKBPermission) echo.MiddlewareFunc
+	ValidateLicenseEdition(edition ...consts.LicenseEdition) echo.MiddlewareFunc
 	MustGetUserID(c echo.Context) (string, bool)
 }
 
-func NewAuthMiddleware(config *config.Config, logger *log.Logger, userAccessRepo *pg.UserAccessRepository) (AuthMiddleware, error) {
+func NewAuthMiddleware(config *config.Config, logger *log.Logger, userAccessRepo *pg.UserAccessRepository, apiTokenRepo *pg.APITokenRepo) (AuthMiddleware, error) {
 	switch config.Auth.Type {
 	case "jwt":
-		return NewJWTMiddleware(config, logger, userAccessRepo), nil
+		return NewJWTMiddleware(config, logger, userAccessRepo, apiTokenRepo), nil
 	default:
 		return nil, fmt.Errorf("invalid auth type: %s", config.Auth.Type)
 	}

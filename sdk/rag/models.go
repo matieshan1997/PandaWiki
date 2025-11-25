@@ -274,20 +274,35 @@ type UpdateDocumentResponse struct {
 	Code int `json:"code"`
 }
 
+// DocumentMetadata 文档元信息结构
+type DocumentMetadata struct {
+	DocumentName string `json:"document_name,omitempty"` // 文档名称
+	CreatedAt    string `json:"created_at,omitempty"`    // 文档创建时间
+	UpdatedAt    string `json:"updated_at,omitempty"`    // 文档更新时间
+	FolderName   string `json:"folder_name,omitempty"`   // 文档所处的文件夹名称，如果没有则为空
+}
+
+// ChatMessage 聊天消息结构
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
 // RetrievalRequest 检索请求
 type RetrievalRequest struct {
-	Question               string   `json:"question"`                           // 查询问题
-	DatasetIDs             []string `json:"dataset_ids,omitempty"`              // 数据集ID列表
-	DocumentIDs            []string `json:"document_ids,omitempty"`             // 文档ID列表
-	UserGroupIDs           []int    `json:"user_group_ids,omitempty"`           // 用户权限组
-	Page                   int      `json:"page,omitempty"`                     // 页码
-	PageSize               int      `json:"page_size,omitempty"`                // 每页数量
-	SimilarityThreshold    float64  `json:"similarity_threshold,omitempty"`     // 相似度阈值
-	VectorSimilarityWeight float64  `json:"vector_similarity_weight,omitempty"` // 向量相似度权重
-	TopK                   int      `json:"top_k,omitempty"`                    // 参与向量计算的topK
-	RerankID               string   `json:"rerank_id,omitempty"`                // rerank模型ID
-	Keyword                bool     `json:"keyword,omitempty"`                  // 是否启用关键词匹配
-	Highlight              bool     `json:"highlight,omitempty"`                // 是否高亮
+	Question               string        `json:"question"`                           // 查询问题
+	DatasetIDs             []string      `json:"dataset_ids,omitempty"`              // 数据集ID列表
+	DocumentIDs            []string      `json:"document_ids,omitempty"`             // 文档ID列表
+	UserGroupIDs           []int         `json:"user_group_ids,omitempty"`           // 用户权限组
+	Page                   int           `json:"page,omitempty"`                     // 页码
+	PageSize               int           `json:"page_size,omitempty"`                // 每页数量
+	SimilarityThreshold    float64       `json:"similarity_threshold,omitempty"`     // 相似度阈值
+	VectorSimilarityWeight float64       `json:"vector_similarity_weight,omitempty"` // 向量相似度权重
+	TopK                   int           `json:"top_k,omitempty"`                    // 参与向量计算的topK
+	RerankID               string        `json:"rerank_id,omitempty"`                // rerank模型ID
+	Keyword                bool          `json:"keyword,omitempty"`                  // 是否启用关键词匹配
+	Highlight              bool          `json:"highlight,omitempty"`                // 是否高亮
+	ChatMessages           []ChatMessage `json:"chat_messages,omitempty"`            // 聊天消息，用于问题重写
 }
 
 // RetrievalChunk 检索结果分块
@@ -311,8 +326,9 @@ type RetrievalChunk struct {
 type RetrievalResponse struct {
 	Code int `json:"code"`
 	Data struct {
-		Chunks []RetrievalChunk `json:"chunks"`
-		Total  int              `json:"total"`
+		Chunks         []RetrievalChunk `json:"chunks"`
+		Total          int              `json:"total"`
+		RewrittenQuery string           `json:"rewritten_query"` // 重写后的问题，如果不需要重写，则返回空字符串
 	} `json:"data"`
 }
 

@@ -26,12 +26,12 @@ func (r *CommentRepository) CreateComment(ctx context.Context, comment *domain.C
 	return nil
 }
 
-func (r *CommentRepository) GetCommentList(ctx context.Context, nodeID string, edition consts.LicenseEdition) ([]*domain.ShareCommentListItem, int64, error) {
+func (r *CommentRepository) GetCommentList(ctx context.Context, nodeID string) ([]*domain.ShareCommentListItem, int64, error) {
 	// 按照时间排序来查询node_id的comments
-	comments := []*domain.ShareCommentListItem{}
-	query := r.db.Model(&domain.Comment{}).Where("node_id = ?", nodeID)
+	var comments []*domain.ShareCommentListItem
+	query := r.db.WithContext(ctx).Model(&domain.Comment{}).Where("node_id = ?", nodeID)
 
-	if edition == consts.LicenseEditionContributor || edition == consts.LicenseEditionEnterprise {
+	if domain.GetBaseEditionLimitation(ctx).AllowCommentAudit {
 		query = query.Where("status = ?", domain.CommentStatusAccepted) //accepted
 	}
 
@@ -50,14 +50,14 @@ func (r *CommentRepository) GetCommentList(ctx context.Context, nodeID string, e
 
 func (r *CommentRepository) GetCommentListByKbID(ctx context.Context, req *domain.CommentListReq, edition consts.LicenseEdition) ([]*domain.CommentListItem, int64, error) {
 	comments := []*domain.CommentListItem{}
-	query := r.db.Model(&domain.Comment{}).Where("comments.kb_id = ?", req.KbID)
+	query := r.db.WithContext(ctx).Model(&domain.Comment{}).Where("comments.kb_id = ?", req.KbID)
 	var count int64
 	if req.Status == nil {
 		if err := query.Count(&count).Error; err != nil {
 			return nil, 0, err
 		}
 	} else {
-		if edition == consts.LicenseEditionContributor || edition == consts.LicenseEditionEnterprise {
+		if domain.GetBaseEditionLimitation(ctx).AllowCommentAudit {
 			query = query.Where("comments.status = ?", *req.Status)
 		}
 		// 按照时间排序来查询kb_id的comments ->reject pending accepted
@@ -84,7 +84,7 @@ func (r *CommentRepository) GetCommentListByKbID(ctx context.Context, req *domai
 
 func (r *CommentRepository) DeleteCommentList(ctx context.Context, commentID []string) error {
 	// 批量删除指定id的comment,获取删除的总的数量、
-	query := r.db.Model(&domain.Comment{}).Where("id IN (?)", commentID)
+	query := r.db.WithContext(ctx).Model(&domain.Comment{}).Where("id IN (?)", commentID)
 
 	if err := query.Delete(&domain.Comment{}).Error; err != nil {
 		return err

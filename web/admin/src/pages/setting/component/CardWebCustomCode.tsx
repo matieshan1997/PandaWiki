@@ -1,18 +1,22 @@
-import { AppDetail, CustomCodeSetting, updateAppDetail } from '@/api';
-import { Box, Button, Stack, TextField } from '@mui/material';
-import { Message } from 'ct-mui';
+import { CustomCodeSetting } from '@/api';
+import { TextField } from '@mui/material';
+import { message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { DomainKnowledgeBaseDetail } from '@/request/types';
+import { SettingCardItem, FormItem } from './Common';
+import { useAppSelector } from '@/store';
+import { putApiV1App } from '@/request/App';
 
 interface CardWebCustomCodeProps {
   id: string;
-  data: AppDetail;
+  data: DomainKnowledgeBaseDetail;
   refresh: (value: CustomCodeSetting) => void;
 }
 
 const CardWebCustomCode = ({ id, data, refresh }: CardWebCustomCodeProps) => {
   const [isEdit, setIsEdit] = useState(false);
-
+  const { kb_id } = useAppSelector(state => state.config);
   const {
     handleSubmit,
     control,
@@ -25,118 +29,73 @@ const CardWebCustomCode = ({ id, data, refresh }: CardWebCustomCodeProps) => {
     },
   });
 
-  const onSubmit = (value: CustomCodeSetting) => {
-    updateAppDetail({ id }, { settings: { ...data.settings, ...value } }).then(
-      () => {
-        Message.success('保存成功');
-        refresh(value);
-        setIsEdit(false);
-      },
-    );
-  };
+  const onSubmit = handleSubmit((value: CustomCodeSetting) => {
+    putApiV1App(
+      { id },
+      // @ts-expect-error 类型不匹配
+      { kb_id, settings: { ...data.settings, ...value } },
+    ).then(() => {
+      message.success('保存成功');
+      refresh(value);
+      setIsEdit(false);
+    });
+  });
 
   useEffect(() => {
+    // @ts-expect-error 类型不匹配
     setValue('head_code', data.settings?.head_code || '');
+    // @ts-expect-error 类型不匹配
     setValue('body_code', data.settings?.body_code || '');
   }, [data]);
 
   return (
-    <>
-      <Stack
-        direction='row'
-        alignItems={'center'}
-        justifyContent={'space-between'}
-        sx={{
-          m: 2,
-          height: 32,
-          fontWeight: 'bold',
-        }}
-      >
-        <Box
-          sx={{
-            '&::before': {
-              content: '""',
-              display: 'inline-block',
-              width: 4,
-              height: 12,
-              bgcolor: 'common.black',
-              borderRadius: '2px',
-              mr: 1,
-            },
-          }}
-        >
-          自定义代码
-        </Box>
-        {isEdit && (
-          <Button
-            variant='contained'
-            size='small'
-            onClick={handleSubmit(onSubmit)}
-          >
-            保存
-          </Button>
-        )}
-      </Stack>
-      <Stack gap={2} sx={{ m: 2 }}>
-        <Stack direction='row' gap={2} alignItems={'flex-start'}>
-          <Box
-            sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}
-          >
-            注入到 Head 标签
-          </Box>
-          <Controller
-            control={control}
-            name='head_code'
-            render={({ field }) => (
-              <TextField
-                sx={{ fontFamily: 'monospace' }}
-                fullWidth
-                multiline
-                rows={4}
-                {...field}
-                placeholder='输入 Head 代码'
-                error={!!errors.head_code}
-                helperText={errors.head_code?.message}
-                onChange={event => {
-                  setIsEdit(true);
-                  field.onChange(event);
-                }}
-              />
-            )}
-          />
-        </Stack>
-        <Stack
-          direction='row'
-          gap={2}
-          alignItems={'flex-start'}
-          sx={{ fontSize: 14, lineHeight: '32px' }}
-        >
-          <Box sx={{ width: 156, fontSize: 14, flexShrink: 0 }}>
-            注入到 Body 标签
-          </Box>
-          <Controller
-            control={control}
-            name='body_code'
-            render={({ field }) => (
-              <TextField
-                sx={{ fontFamily: 'monospace' }}
-                fullWidth
-                {...field}
-                multiline
-                rows={4}
-                placeholder='输入 Body 代码'
-                error={!!errors.body_code}
-                helperText={errors.body_code?.message}
-                onChange={event => {
-                  setIsEdit(true);
-                  field.onChange(event);
-                }}
-              />
-            )}
-          />
-        </Stack>
-      </Stack>
-    </>
+    <SettingCardItem title='自定义代码' isEdit={isEdit} onSubmit={onSubmit}>
+      <FormItem label='注入到 Head 标签' sx={{ alignItems: 'flex-start' }}>
+        <Controller
+          control={control}
+          name='head_code'
+          render={({ field }) => (
+            <TextField
+              sx={{ fontFamily: 'monospace' }}
+              fullWidth
+              multiline
+              rows={4}
+              {...field}
+              placeholder='输入 Head 代码'
+              error={!!errors.head_code}
+              helperText={errors.head_code?.message}
+              onChange={event => {
+                setIsEdit(true);
+                field.onChange(event);
+              }}
+            />
+          )}
+        />
+      </FormItem>
+
+      <FormItem label='注入到 Body 标签' sx={{ alignItems: 'flex-start' }}>
+        <Controller
+          control={control}
+          name='body_code'
+          render={({ field }) => (
+            <TextField
+              sx={{ fontFamily: 'monospace' }}
+              fullWidth
+              {...field}
+              multiline
+              rows={4}
+              placeholder='输入 Body 代码'
+              error={!!errors.body_code}
+              helperText={errors.body_code?.message}
+              onChange={event => {
+                setIsEdit(true);
+                field.onChange(event);
+              }}
+            />
+          )}
+        />
+      </FormItem>
+    </SettingCardItem>
   );
 };
 export default CardWebCustomCode;

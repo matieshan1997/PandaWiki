@@ -1,34 +1,14 @@
-import type { PaletteColorChannel } from '@mui/material';
-declare module '@mui/material/styles' {
-  interface TypeText {
-    tertiary: string;
+/// <reference types="@panda-wiki/themes/types" />
+
+declare module '@cap.js/widget' {
+  interface CapOptions {
+    apiEndpoint: string;
   }
 
-  interface Palette {
-    light: Palette['primary'] & PaletteColorChannel;
-    dark: Palette['primary'] & PaletteColorChannel;
-    disabled: Palette['primary'] & PaletteColorChannel;
+  class Cap {
+    constructor(options: CapOptions);
+    solve(): Promise<{ token: string }>;
   }
 
-  // allow configuration using `createTheme`
-  interface PaletteOptions {
-    light?: PaletteOptions['primary'] & Partial<PaletteColorChannel>;
-    dark?: PaletteOptions['primary'] & Partial<PaletteColorChannel>;
-    disabled?: PaletteOptions['primary'] & Partial<PaletteColorChannel>;
-    text?: Partial<TypeText>;
-  }
-}
-declare module '@mui/material/Button' {
-  interface ButtonPropsColorOverrides {
-    light: true;
-    dark: true;
-  }
-}
-
-import type {} from '@mui/material/themeCssVarsAugmentation';
-
-declare global {
-  interface Window {
-    LLP: any;
-  }
+  export default Cap;
 }

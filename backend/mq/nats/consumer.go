@@ -57,9 +57,55 @@ func (c *MQConsumer) RegisterHandler(topic string, handler func(ctx context.Cont
 
 	c.logger.Info("registering handler for topic", log.String("topic", topic))
 
-	// create jetstream subscription
+	// 对于 anydoc.persistence.doc.task.export 主题，使用 Core NATS 订阅
+	if topic == domain.AnydocTaskExportTopic {
+		return c.registerCoreNATSHandler(topic, handler)
+	}
+
+	return c.registerJetStreamHandler(topic, handler)
+}
+
+// registerCoreNATSHandler 使用 Core NATS 订阅主题
+func (c *MQConsumer) registerCoreNATSHandler(topic string, handler func(ctx context.Context, msg types.Message) error) error {
+	sub, err := c.conn.Subscribe(topic, func(msg *nats.Msg) {
+		c.logger.Debug("received message via Core NATS",
+			log.String("topic", topic),
+			log.Int("data_size", len(msg.Data)))
+
+		if err := handler(context.Background(), &Message{msg: msg}); err != nil {
+			c.logger.Error("handle message failed",
+				log.String("topic", topic),
+				log.Error(err))
+			return
+		}
+
+	})
+	if err != nil {
+		c.logger.Error("failed to subscribe to topic via Core NATS",
+			log.String("topic", topic),
+			log.Error(err))
+		return err
+	}
+
+	c.logger.Info("successfully subscribed to topic via Core NATS", log.String("topic", topic))
+	c.handlers[topic] = sub
+	return nil
+}
+
+// registerJetStreamHandler 使用 JetStream 订阅主题
+func (c *MQConsumer) registerJetStreamHandler(topic string, handler func(ctx context.Context, msg types.Message) error) error {
+	consumerName := domain.TopicConsumerName[topic]
+
+	// Choose deliver policy based on topic
+	var deliverPolicy nats.SubOpt
+	if topic == domain.VectorTaskTopic {
+		deliverPolicy = nats.DeliverNew()
+	} else {
+		deliverPolicy = nats.DeliverAll()
+	}
+
 	sub, err := c.js.Subscribe(topic, func(msg *nats.Msg) {
-		c.logger.Debug("received message",
+		c.logger.Debug("received message via JetStream",
 			log.String("topic", topic),
 			log.Int("data_size", len(msg.Data)))
 
@@ -75,15 +121,15 @@ func (c *MQConsumer) RegisterHandler(topic string, handler func(ctx context.Cont
 				log.String("topic", topic),
 				log.Error(err))
 		}
-	}, nats.DeliverNew(), nats.AckExplicit(), nats.Durable(domain.TopicConsumerName[topic]), nats.ConsumerName(domain.TopicConsumerName[topic]))
+	}, deliverPolicy, nats.AckExplicit(), nats.Durable(consumerName), nats.ConsumerName(consumerName))
 	if err != nil {
-		c.logger.Error("failed to subscribe to topic",
+		c.logger.Error("failed to subscribe to topic via JetStream",
 			log.String("topic", topic),
 			log.Error(err))
 		return err
 	}
 
-	c.logger.Info("successfully subscribed to topic", log.String("topic", topic))
+	c.logger.Info("successfully subscribed to topic via JetStream", log.String("topic", topic))
 	c.handlers[topic] = sub
 	return nil
 }

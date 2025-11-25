@@ -5,15 +5,19 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	middlewareOtel "go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 
-	"github.com/chaitin/panda-wiki/config"
 	_ "github.com/chaitin/panda-wiki/docs"
+
+	"github.com/chaitin/panda-wiki/config"
 	"github.com/chaitin/panda-wiki/log"
 	PWMiddleware "github.com/chaitin/panda-wiki/middleware"
 )
@@ -40,9 +44,25 @@ func NewEcho(
 	sessionMiddleware *PWMiddleware.SessionMiddleware,
 ) *echo.Echo {
 
+	// Initialize Sentry if enabled
+	if config.Sentry.Enabled && config.Sentry.DSN != "" {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn: config.Sentry.DSN,
+		})
+		if err != nil {
+			logger.Error("Failed to initialize Sentry", log.Error(err))
+		} else {
+			logger.Info("Sentry initialized successfully")
+			// Flush buffered events on the default client before the program terminates.
+			defer sentry.Flush(2 * time.Second)
+		}
+	}
+
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
+
+	e.Binder = &MyBinder{}
 
 	if os.Getenv("ENV") == "local" {
 		e.Debug = true
@@ -50,6 +70,15 @@ func NewEcho(
 	}
 	// register validator
 	e.Validator = &echoValidator{validator: validator.New()}
+
+	// Add Sentry middleware if enabled
+	if config.Sentry.Enabled && config.Sentry.DSN != "" {
+		e.Use(sentryecho.New(sentryecho.Options{
+			Repanic: true,
+			Timeout: 5 * time.Second,
+		}))
+		sentry.CaptureMessage("It works!")
+	}
 
 	if config.GetBool("apm.enabled") {
 		e.Use(middlewareOtel.Middleware(config.GetString("apm.service_name")))
@@ -96,4 +125,23 @@ func NewEcho(
 	e.Use(sessionMiddleware.Session())
 
 	return e
+}
+
+type MyBinder struct {
+	echo.DefaultBinder
+}
+
+func (b *MyBinder) Bind(i interface{}, c echo.Context) (err error) {
+	if err := b.BindPathParams(c, i); err != nil {
+		return err
+	}
+
+	method := c.Request().Method
+	if method == http.MethodGet || method == http.MethodDelete || method == http.MethodHead {
+		if err = b.BindQueryParams(c, i); err != nil {
+			return err
+		}
+		return nil
+	}
+	return b.BindBody(c, i)
 }

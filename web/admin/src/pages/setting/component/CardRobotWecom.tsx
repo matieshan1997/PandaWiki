@@ -1,4 +1,3 @@
-import { updateAppDetail } from '@/api';
 import ShowText from '@/components/ShowText';
 import {
   Box,
@@ -7,15 +6,16 @@ import {
   RadioGroup,
   TextField,
 } from '@mui/material';
-import { Message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   DomainKnowledgeBaseDetail,
   DomainAppDetailResp,
 } from '@/request/types';
-import { getApiV1AppDetail } from '@/request/App';
+import { getApiV1AppDetail, putApiV1App } from '@/request/App';
 import { FormItem, SettingCardItem } from './Common';
+import { useAppSelector } from '@/store';
 
 const CardRobotWecom = ({
   kb,
@@ -27,6 +27,7 @@ const CardRobotWecom = ({
   const [isEdit, setIsEdit] = useState(false);
   const [detail, setDetail] = useState<DomainAppDetailResp | null>(null);
   const [isEnabled, setIsEnabled] = useState(false);
+  const { kb_id } = useAppSelector(state => state.config);
 
   const {
     control,
@@ -62,12 +63,12 @@ const CardRobotWecom = ({
 
   const onSubmit = handleSubmit(data => {
     if (!detail) return;
-    updateAppDetail(
+    putApiV1App(
       { id: detail.id! },
       {
+        kb_id,
         settings: {
           wechat_app_is_enabled: data.wechat_app_is_enabled,
-          // @ts-expect-error 类型错误
           wechat_app_agent_id: data.wechat_app_agent_id,
           wechat_app_secret: data.wechat_app_secret,
           wechat_app_token: data.wechat_app_token,
@@ -76,7 +77,7 @@ const CardRobotWecom = ({
         },
       },
     ).then(() => {
-      Message.success('保存成功');
+      message.success('保存成功');
       setIsEdit(false);
       getDetail();
       reset();

@@ -2,7 +2,7 @@
 
 import { addOpacityToColor } from '@/utils';
 import { IconButton, useTheme } from '@mui/material';
-import { Icon } from 'ct-mui';
+import { IconXiajiantou } from '@panda-wiki/icons';
 import React, { useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
@@ -37,7 +37,7 @@ const ThinkingComponent: React.FC<ThinkingComponentProps> = ({
         color: theme.palette.text.secondary,
         marginBottom: '40px',
         lineHeight: '20px',
-        backgroundColor: theme.palette.background.paper2,
+        backgroundColor: theme.palette.background.paper3,
         padding: '16px',
         cursor: 'pointer',
         borderRadius: '10px',
@@ -57,15 +57,14 @@ const ThinkingComponent: React.FC<ThinkingComponentProps> = ({
           size='small'
           onClick={onToggle}
           sx={{
-            bgcolor: 'background.paper2',
+            bgcolor: 'background.paper3',
             ':hover': {
               bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1),
               color: theme.palette.primary.main,
             },
           }}
         >
-          <Icon
-            type='icon-xiajiantou'
+          <IconXiajiantou
             sx={{
               fontSize: 18,
               flexShrink: 0,

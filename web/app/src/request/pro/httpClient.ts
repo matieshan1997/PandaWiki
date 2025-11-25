@@ -15,8 +15,8 @@ import {
   getServerPathname,
   getServerSearch,
 } from "@/utils/getServerHeader";
-import { message as alert } from "ct-mui";
-import { notFound, redirect } from "next/navigation";
+import { message as alert } from "@ctzhian/ui";
+import { redirect } from "next/navigation";
 export type QueryParamsType = Record<string | number, any>;
 export type ResponseFormat = keyof Omit<Body, "body" | "bodyUsed">;
 
@@ -262,7 +262,6 @@ export class HttpClient<SecurityDataType = unknown> {
       },
     ).then(async (response) => {
       if (response.status === 401) {
-        console.log("response 401:", response);
         if (typeof window === "undefined") {
           const pathname = await getServerPathname();
           if (!pathnameWhiteList.includes(pathname)) {
@@ -284,28 +283,28 @@ export class HttpClient<SecurityDataType = unknown> {
         }
       }
 
-      if (response.status === 403) {
-        console.log("response 403:", response);
-        if (typeof window === "undefined") {
-          const pathname = await getServerPathname();
-          if (pathname !== "/block") {
-            redirect("/block");
-          }
-        }
-        if (typeof window !== "undefined") {
-          const pathname = window.location.pathname;
-          if (pathname !== "/block") {
-            window.location.href = "/block";
-          }
-        }
-        return Promise.reject(403);
-      }
+      //  if (response.status === 403) {
+      //   console.log("response 403:", response);
+      //   if (typeof window === "undefined") {
+      //     const pathname = await getServerPathname();
+      //     if (pathname !== "/block") {
+      //       redirect("/block");
+      //     }
+      //   }
+      //   if (typeof window !== "undefined") {
+      //     const pathname = window.location.pathname;
+      //     if (pathname !== "/block") {
+      //       window.location.href = "/block";
+      //     }
+      //   }
+      //   return Promise.reject(403);
+      // }
 
-      if (response.status === 404) {
-        if (typeof window === "undefined") {
-          notFound();
-        }
-      }
+      // if (response.status === 404) {
+      //   if (typeof window === "undefined") {
+      //     notFound();
+      //   }
+      // }
 
       let data: any = {};
 
@@ -334,7 +333,10 @@ export class HttpClient<SecurityDataType = unknown> {
         }
         const errorMessage = { data, url: response.url, response };
         console.log("response error:", errorMessage);
-        throw errorMessage;
+        return Promise.reject({
+          ...data,
+          code: response.status === 200 ? data.code : response.status,
+        });
       }
       return data.data;
     });

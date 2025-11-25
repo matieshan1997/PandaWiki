@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/chaitin/pandawiki/sdk/rag"
+	"github.com/cloudwego/eino/schema"
 	"github.com/google/wire"
 
 	"github.com/chaitin/panda-wiki/config"
@@ -14,10 +16,12 @@ import (
 
 type RAGService interface {
 	CreateKnowledgeBase(ctx context.Context) (string, error)
-	UpsertRecords(ctx context.Context, datasetID string, nodeRelease *domain.NodeRelease) (string, error)
-	QueryRecords(ctx context.Context, datasetIDs []string, query string) ([]*domain.NodeContentChunk, error)
+	UpsertRecords(ctx context.Context, datasetID string, nodeRelease *domain.NodeReleaseWithDirPath, authGroupId []int) (string, error)
+	QueryRecords(ctx context.Context, datasetIDs []string, query string, groupIDs []int, similarityThreshold float64, historyMsgs []*schema.Message) ([]*domain.NodeContentChunk, error)
 	DeleteRecords(ctx context.Context, datasetID string, docIDs []string) error
 	DeleteKnowledgeBase(ctx context.Context, datasetID string) error
+	UpdateDocumentGroupIDs(ctx context.Context, datasetID string, docID string, groupIds []int) error
+	ListDocuments(ctx context.Context, datasetID string, params map[string]string) ([]rag.Document, error)
 
 	GetModelList(ctx context.Context) ([]*domain.Model, error)
 	AddModel(ctx context.Context, model *domain.Model) (string, error)

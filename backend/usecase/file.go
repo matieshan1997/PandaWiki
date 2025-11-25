@@ -33,6 +33,14 @@ func NewFileUsecase(logger *log.Logger, s3Client *s3.MinioClient, config *config
 	}
 }
 
+func (u *FileUsecase) UploadFileGetUrl(ctx context.Context, kbID string, file *multipart.FileHeader) (string, error) {
+	key, err := u.UploadFile(ctx, kbID, file)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("http://panda-wiki-minio:9000/static-file/%s", key), nil
+}
+
 func (u *FileUsecase) UploadFile(ctx context.Context, kbID string, file *multipart.FileHeader) (string, error) {
 	src, err := file.Open()
 	if err != nil {
@@ -141,4 +149,40 @@ func (u *FileUsecase) UploadFileFromReader(
 	}
 
 	return s3Filename, nil
+}
+
+func (u *FileUsecase) AnyDocUploadFile(ctx context.Context, file *multipart.FileHeader, path string) (string, error) {
+	src, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer src.Close()
+
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+
+	size := file.Size
+
+	contentType := file.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = mime.TypeByExtension(ext)
+	}
+
+	resp, err := u.s3Client.PutObject(
+		ctx,
+		domain.Bucket,
+		path,
+		src,
+		size,
+		minio.PutObjectOptions{
+			ContentType: contentType,
+			UserMetadata: map[string]string{
+				"originalname": file.Filename,
+			},
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf("upload failed: %w", err)
+	}
+
+	return resp.Key, nil
 }

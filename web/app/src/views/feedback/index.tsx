@@ -5,7 +5,7 @@ import { useStore } from '@/provider';
 import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import { DomainFeedbackRequest } from '@/request/types';
 import { Box, Button, Stack, TextField } from '@mui/material';
-import { message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -104,7 +104,7 @@ const Feedback = () => {
                     borderColor: type === tag ? 'primary.main' : 'divider',
                     cursor: 'pointer',
                     color: type === tag ? 'primary.main' : 'text.primary',
-                    bgcolor: 'background.paper2',
+                    bgcolor: 'background.paper3',
                   }}
                   onClick={() => {
                     setType(tag);
@@ -128,7 +128,7 @@ const Feedback = () => {
                 borderRadius: '10px',
                 border: '1px solid',
                 borderColor: 'divider',
-                bgcolor: 'background.paper2',
+                bgcolor: 'background.paper3',
                 p: 2,
               }}
             >
@@ -190,7 +190,7 @@ const Feedback = () => {
           zIndex: 1000,
         }}
       >
-        <Footer showBrand={false} fullWidth={true} />
+        <Footer showBrand={false} />
       </Box>
     </>
   );

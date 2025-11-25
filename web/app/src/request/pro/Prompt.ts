@@ -13,8 +13,8 @@
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainCreatePromptReq,
+  DomainPWResponse,
   DomainPrompt,
-  DomainResponse,
   GetApiProV1PromptParams,
 } from "./types";
 
@@ -25,7 +25,7 @@ import {
  * @name GetApiProV1Prompt
  * @summary Get all prompts
  * @request GET:/api/pro/v1/prompt
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainPrompt,
 
 })` OK
@@ -36,7 +36,7 @@ export const getApiProV1Prompt = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainPrompt;
     }
   >({
@@ -55,7 +55,7 @@ export const getApiProV1Prompt = (
  * @name PostApiProV1Prompt
  * @summary Create a new prompt
  * @request POST:/api/pro/v1/prompt
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainPrompt,
 
 })` OK
@@ -66,7 +66,7 @@ export const postApiProV1Prompt = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainPrompt;
     }
   >({

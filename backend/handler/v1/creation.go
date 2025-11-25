@@ -24,8 +24,9 @@ func NewCreationHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, logge
 		usecase:     usecase,
 	}
 
-	api := echo.Group("/api/v1/creation")
+	api := echo.Group("/api/v1/creation", h.V1Auth.Authorize)
 	api.POST("/text", h.Text)
+	api.POST("/tab-complete", h.TabComplete)
 
 	return h
 }
@@ -67,4 +68,36 @@ func (h *CreationHandler) Text(c echo.Context) error {
 		return h.NewResponseWithError(c, "text creation failed", err)
 	}
 	return nil
+}
+
+// TabComplete handles tab-based document completion similar to AI coding's FIM (Fill in Middle)
+//
+//	@Summary		Tab-based document completion
+//	@Description	Tab-based document completion similar to AI coding's FIM (Fill in Middle)
+//	@Tags			creation
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		domain.CompleteReq	true	"tab completion request"
+//	@Success		200		{string}	string				"success"
+//	@Router			/api/v1/creation/tab-complete [post]
+func (h *CreationHandler) TabComplete(c echo.Context) error {
+	var req domain.CompleteReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+
+	// For FIM-style completion, we don't need streaming
+	result, err := h.usecase.TabComplete(c.Request().Context(), &req)
+	if err != nil {
+		h.logger.Error("tab completion failed", log.Error(err))
+		return h.NewResponseWithError(c, "tab completion failed", err)
+	}
+
+	return c.JSON(200, map[string]interface{}{
+		"success": true,
+		"data":    result,
+	})
 }

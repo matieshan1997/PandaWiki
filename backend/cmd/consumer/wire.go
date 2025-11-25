@@ -1,5 +1,4 @@
 //go:build wireinject
-// +build wireinject
 
 package main
 
@@ -28,5 +27,5 @@ type App struct {
 	MQConsumer      mq.MQConsumer
 	Config          *config.Config
 	MQHandlers      *handler.MQHandlers
-	StatCronHandler *handler.StatCronHandler
+	StatCronHandler *handler.CronHandler
 }

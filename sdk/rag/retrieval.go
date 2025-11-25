@@ -5,16 +5,16 @@ import (
 )
 
 // RetrieveChunks 检索分块（向量/关键词检索）
-func (c *Client) RetrieveChunks(ctx context.Context, req RetrievalRequest) ([]RetrievalChunk, int, error) {
+func (c *Client) RetrieveChunks(ctx context.Context, req RetrievalRequest) ([]RetrievalChunk, int, string, error) {
 	httpReq, err := c.newRequest(ctx, "POST", "retrieval", req)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, "", err
 	}
 	var resp RetrievalResponse
 	if err := c.do(httpReq, &resp); err != nil {
-		return nil, 0, err
+		return nil, 0, "", err
 	}
-	return resp.Data.Chunks, resp.Data.Total, nil
+	return resp.Data.Chunks, resp.Data.Total, resp.Data.RewrittenQuery, nil
 }
 
 // RelatedQuestions 生成相关问题（多样化检索）

@@ -3,30 +3,51 @@ package pg
 import (
 	"context"
 
+	v1 "github.com/chaitin/panda-wiki/api/stat/v1"
 	"github.com/chaitin/panda-wiki/domain"
+	"github.com/chaitin/panda-wiki/store/cache"
 	"github.com/chaitin/panda-wiki/store/pg"
+	"github.com/chaitin/panda-wiki/utils"
 )
 
 type StatRepository struct {
-	db *pg.DB
+	db    *pg.DB
+	cache *cache.Cache
 }
 
-func NewStatRepository(db *pg.DB) *StatRepository {
-	return &StatRepository{db: db}
+func NewStatRepository(db *pg.DB, cahe *cache.Cache) *StatRepository {
+	return &StatRepository{
+		db:    db,
+		cache: cahe,
+	}
 }
 
 func (r *StatRepository) CreateStatPage(ctx context.Context, stat *domain.StatPage) error {
 	return r.db.WithContext(ctx).Model(&domain.StatPage{}).Create(stat).Error
 }
 
-func (r *StatRepository) GetHotPages(ctx context.Context, kbID string) ([]*domain.HotPageResp, error) {
-	var hotPages []*domain.HotPageResp
+func (r *StatRepository) GetHotPages(ctx context.Context, kbID string) ([]*domain.HotPage, error) {
+	var hotPages []*domain.HotPage
 	if err := r.db.WithContext(ctx).Model(&domain.StatPage{}).
 		Where("kb_id = ?", kbID).
-		Group("scene, node_id").
-		Select("scene, node_id, COUNT(*) as count").
+		Where("scene = ?", domain.StatPageSceneNodeDetail).
+		Group("node_id").
+		Select("node_id, COUNT(*) as count").
 		Order("count DESC").
 		Limit(10).
+		Find(&hotPages).Error; err != nil {
+		return nil, err
+	}
+	return hotPages, nil
+}
+
+func (r *StatRepository) GetHotPagesNoLimit(ctx context.Context, kbID string) ([]*domain.HotPage, error) {
+	var hotPages []*domain.HotPage
+	if err := r.db.WithContext(ctx).Model(&domain.StatPage{}).
+		Where("kb_id = ?", kbID).
+		Where("scene = ?", domain.StatPageSceneNodeDetail).
+		Group("node_id").
+		Select("node_id, COUNT(*) as count").
 		Find(&hotPages).Error; err != nil {
 		return nil, err
 	}
@@ -47,8 +68,8 @@ func (r *StatRepository) GetHotScene(ctx context.Context, kbID string) (map[doma
 	return scenes, nil
 }
 
-func (r *StatRepository) GetHotRefererHosts(ctx context.Context, kbID string) ([]*domain.HotRefererHostResp, error) {
-	var hotRefererHosts []*domain.HotRefererHostResp
+func (r *StatRepository) GetHotRefererHosts(ctx context.Context, kbID string) ([]*domain.HotRefererHost, error) {
+	var hotRefererHosts []*domain.HotRefererHost
 	if err := r.db.WithContext(ctx).Model(&domain.StatPage{}).
 		Where("kb_id = ?", kbID).
 		Group("referer_host").
@@ -61,8 +82,8 @@ func (r *StatRepository) GetHotRefererHosts(ctx context.Context, kbID string) ([
 	return hotRefererHosts, nil
 }
 
-func (r *StatRepository) GetHotBrowsers(ctx context.Context, kbID string) (*domain.HotBrowserResp, error) {
-	var hotBrowsers *domain.HotBrowserResp
+func (r *StatRepository) GetHotBrowsers(ctx context.Context, kbID string) (*domain.HotBrowser, error) {
+	var hotBrowsers *domain.HotBrowser
 	var osCount []domain.BrowserCount
 	var browserCount []domain.BrowserCount
 
@@ -82,7 +103,7 @@ func (r *StatRepository) GetHotBrowsers(ctx context.Context, kbID string) (*doma
 		return nil, err
 	}
 
-	hotBrowsers = &domain.HotBrowserResp{
+	hotBrowsers = &domain.HotBrowser{
 		OS:      osCount,
 		Browser: browserCount,
 	}
@@ -90,8 +111,8 @@ func (r *StatRepository) GetHotBrowsers(ctx context.Context, kbID string) (*doma
 	return hotBrowsers, nil
 }
 
-func (r *StatRepository) GetCount(ctx context.Context, kbID string) (*domain.StatPageCountResp, error) {
-	var count domain.StatPageCountResp
+func (r *StatRepository) GetStatPageCount(ctx context.Context, kbID string) (*v1.StatCountResp, error) {
+	var count v1.StatCountResp
 	if err := r.db.WithContext(ctx).Model(&domain.StatPage{}).
 		Where("kb_id = ?", kbID).
 		Select("COUNT(DISTINCT ip) as ip_count, COUNT(DISTINCT session_id) as session_count, COUNT(*) as page_visit_count").
@@ -129,7 +150,7 @@ func (r *StatRepository) GetInstantPages(ctx context.Context, kbID string) ([]*d
 
 func (r *StatRepository) RemoveOldData(ctx context.Context) error {
 	if err := r.db.WithContext(ctx).Model(&domain.StatPage{}).
-		Where("created_at < date_trunc('hour', now()) - interval '24h'").
+		Where("created_at < ?", utils.GetTimeHourOffset(-24)).
 		Delete(&domain.StatPage{}).Error; err != nil {
 		return err
 	}

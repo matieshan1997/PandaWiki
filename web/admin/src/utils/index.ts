@@ -1,6 +1,6 @@
 import { MAC_SYMBOLS } from '@/constant/enums';
-import { Message } from 'ct-mui';
-import { isArray, isEmpty, isNil, isObject, pickBy } from 'lodash';
+import { message } from '@ctzhian/ui';
+import { isArray, isEmpty, isNil, isObject, pickBy } from 'lodash-es';
 
 export * from './render';
 
@@ -92,18 +92,32 @@ export const getShortcutKeyText = (shortcutKey: string[]) => {
     .join('+');
 };
 
-export const copyText = (text: string, callback?: () => void) => {
+export const copyText = (
+  text: string,
+  callback?: () => void,
+  duration?: number,
+  msgText?: string,
+) => {
   const isNotHttps = !/^https:\/\//.test(window.location.origin);
 
+  if (msgText) {
+    msgText = ` ` + msgText;
+  } else {
+    msgText = '';
+  }
+
   if (isNotHttps) {
-    Message.error('非 https 协议下不支持复制，请使用 https 协议');
+    message.error(
+      '非 https 协议下不支持复制，请使用 https 协议' + msgText,
+      duration ?? 1500,
+    );
     return;
   }
 
   try {
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text);
-      Message.success('复制成功');
+      message.success('复制成功' + msgText, duration ?? 1500);
       callback?.();
     } else {
       const textArea = document.createElement('textarea');
@@ -118,18 +132,18 @@ export const copyText = (text: string, callback?: () => void) => {
       try {
         const successful = document.execCommand('copy');
         if (successful) {
-          Message.success('复制成功');
+          message.success('复制成功' + msgText, duration ?? 1500);
           callback?.();
         } else {
-          Message.error('复制失败，请手动复制');
+          message.error('复制失败，请手动复制' + msgText, duration ?? 1500);
         }
       } catch (err) {
-        Message.error('复制失败，请手动复制');
+        message.error('复制失败，请手动复制' + msgText, duration ?? 1500);
       }
       document.body.removeChild(textArea);
     }
   } catch (err) {
-    Message.error('复制失败，请手动复制');
+    message.error('复制失败，请手动复制' + msgText, duration ?? 1500);
   }
 };
 
@@ -152,3 +166,196 @@ export const validateUrl = (url: string): boolean => {
     return false;
   }
 };
+
+/**
+ * 链接补全配置选项
+ */
+export interface CompleteLinksOptions {
+  /**
+   * 协议相对链接（//example.com）的处理策略
+   * - 'preserve': 保持原样
+   * - 'current': 使用当前页面的协议（http 或 https）
+   * - 'https': 强制使用 https（默认）
+   * - 'http': 强制使用 http
+   */
+  schemaRelative?: 'preserve' | 'current' | 'https' | 'http';
+  /**
+   * FTP 链接的处理策略
+   * - 'preserve': 保持原样（默认）
+   * - 'https': 转换为 https（ftp://example.com -> https://example.com）
+   * - 'remove': 移除 ftp:// 前缀，转为普通域名
+   */
+  ftpProtocol?: 'preserve' | 'https' | 'remove';
+  /**
+   * HTTP 链接的处理策略
+   * - 'preserve': 保持原样（默认）
+   * - 'https': 转换为 https
+   */
+  httpProtocol?: 'preserve' | 'https';
+  /**
+   * 裸域名补全时使用的协议
+   * - 'https': 使用 https（默认）
+   * - 'http': 使用 http
+   * - 'current': 使用当前页面的协议
+   */
+  bareDomainProtocol?: 'https' | 'http' | 'current';
+}
+
+/**
+ * 将文本中的所有链接补全为完整链接（含协议的绝对地址）
+ * - 处理 Markdown 链接: [title](href)
+ * - 处理 HTML 链接: <a href="...">...</a>
+ * - 处理 HTML 标签的 src 属性: <img src="...">, <iframe src="...">, <script src="..."> 等
+ * - 相对/根路径/上级路径 将基于 window.location.href 解析为绝对地址
+ * - 裸域名/子域名（如 example.com / sub.example.com）自动补全协议前缀
+ * - 已包含协议(http/https/ftp/mailto/tel/data等)或锚点(#)的根据配置处理
+ *
+ * @param text 要处理的文本
+ * @param options 处理选项配置
+ */
+export function completeIncompleteLinks(
+  text: string,
+  options: CompleteLinksOptions = {},
+): string {
+  if (!text) return text;
+
+  const {
+    schemaRelative = 'https',
+    ftpProtocol = 'preserve',
+    httpProtocol = 'preserve',
+    bareDomainProtocol = 'https',
+  } = options;
+
+  const baseHref =
+    typeof window !== 'undefined' && window.location
+      ? window.location.href
+      : '';
+  const currentProtocol =
+    typeof window !== 'undefined' && window.location
+      ? window.location.protocol
+      : 'https:';
+
+  const isProtocolLike = (href: string) =>
+    /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(href);
+
+  const isHash = (href: string) => href.startsWith('#');
+
+  const isSchemaRelative = (href: string) => href.startsWith('//');
+
+  const isBareDomain = (href: string) => {
+    if (/[\s"'<>]/.test(href)) return false;
+    if (href.startsWith('/') || href.startsWith('.')) return false;
+    return /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+(?::\d+)?(\/.*)?$/.test(href);
+  };
+
+  const getProtocolForBareDomain = (): string => {
+    if (bareDomainProtocol === 'current') {
+      return currentProtocol;
+    }
+    return bareDomainProtocol === 'http' ? 'http:' : 'https:';
+  };
+
+  const resolveHref = (href: string): string => {
+    const trimmed = href.trim();
+    if (!trimmed) return href;
+
+    // 锚点链接保持原样
+    if (isHash(trimmed)) return trimmed;
+
+    // 处理协议相对链接（//example.com）
+    if (isSchemaRelative(trimmed)) {
+      if (schemaRelative === 'preserve') return trimmed;
+      if (schemaRelative === 'current') return currentProtocol + trimmed;
+      if (schemaRelative === 'http') return 'http:' + trimmed;
+      return 'https:' + trimmed; // 默认 https
+    }
+
+    // 处理已有协议的链接
+    if (isProtocolLike(trimmed)) {
+      const protocolMatch = trimmed.match(/^([a-zA-Z][a-zA-Z\d+\-.]*):/);
+      if (protocolMatch) {
+        const protocol = protocolMatch[1].toLowerCase();
+
+        // 处理 FTP 协议
+        if (protocol === 'ftp') {
+          if (ftpProtocol === 'preserve') return trimmed;
+          if (ftpProtocol === 'https') {
+            return trimmed.replace(/^ftp:/i, 'https:');
+          }
+          if (ftpProtocol === 'remove') {
+            return trimmed.replace(/^ftp:\/\//i, '');
+          }
+        }
+
+        // 处理 HTTP 协议
+        if (protocol === 'http') {
+          if (httpProtocol === 'preserve') return trimmed;
+          if (httpProtocol === 'https') {
+            return trimmed.replace(/^http:/i, 'https:');
+          }
+        }
+
+        // 其他协议（https, mailto, tel, data 等）保持原样
+        return trimmed;
+      }
+    }
+
+    // 处理裸域名
+    if (isBareDomain(trimmed)) {
+      const protocol = getProtocolForBareDomain();
+      return `${protocol}//${trimmed}`;
+    }
+
+    // 处理相对路径、根路径、上级路径
+    try {
+      if (baseHref) {
+        return new URL(trimmed, baseHref).toString();
+      }
+    } catch {
+      // ignore
+    }
+
+    return trimmed;
+  };
+
+  // 处理 Markdown: [text](href)
+  const mdRe = /\[([^\]]+)\]\(([^)]+)\)/g;
+  text = text.replace(mdRe, (_m, label: string, href: string) => {
+    const completed = resolveHref(href);
+    return `[${label}](${completed})`;
+  });
+
+  // 处理 HTML: <a href="..."> / <a href='...'>
+  const htmlRe = /(<a\b[^>]*?\bhref=(["']))([^"']+)(\2)/gi;
+  text = text.replace(
+    htmlRe,
+    (
+      _m: string,
+      pre: string,
+      quote: string,
+      href: string,
+      postQuote: string,
+    ) => {
+      const completed = resolveHref(href);
+      return `${pre}${completed}${postQuote}`;
+    },
+  );
+
+  // 处理 HTML 标签中的 src 属性: <img src="...">, <iframe src="...">, <script src="..."> 等
+  const srcRe = /(<[a-zA-Z][a-zA-Z0-9]*\b[^>]*?\bsrc=(["']))([^"']+)(\2)/gi;
+  text = text.replace(
+    srcRe,
+    (
+      _m: string,
+      pre: string,
+      quote: string,
+      src: string,
+      postQuote: string,
+    ) => {
+      const completed = resolveHref(src);
+      return `${pre}${completed}${postQuote}`;
+    },
+  );
+
+  return text;
+}

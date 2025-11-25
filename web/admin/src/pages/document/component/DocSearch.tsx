@@ -1,6 +1,6 @@
 import { useURLSearchParams } from '@/hooks';
 import { IconButton, InputAdornment, Stack, TextField } from '@mui/material';
-import { Icon } from 'ct-mui';
+import { IconIcon_tool_close } from '@panda-wiki/icons';
 import { useState } from 'react';
 
 const DocSearch = () => {
@@ -32,9 +32,8 @@ const DocSearch = () => {
                 }}
                 size='small'
               >
-                <Icon
-                  type='icon-icon_tool_close'
-                  sx={{ fontSize: 14, color: 'text.auxiliary' }}
+                <IconIcon_tool_close
+                  sx={{ fontSize: 14, color: 'text.tertiary' }}
                 />
               </IconButton>
             </InputAdornment>

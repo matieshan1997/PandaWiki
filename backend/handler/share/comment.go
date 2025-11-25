@@ -2,10 +2,10 @@ package share
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
@@ -69,25 +69,32 @@ func (h *ShareCommentHandler) CreateComment(c echo.Context) error {
 		return h.NewResponseWithError(c, "kb_id is required", nil)
 	}
 
-	// 用户传入对应的comment参数
-	var CommentReq domain.CommentReq
-	if err := c.Bind(&CommentReq); err != nil {
+	var req domain.CommentReq
+	if err := c.Bind(&req); err != nil {
 		return h.NewResponseWithError(c, "bind comment request failed", err)
 	}
-	if err := c.Validate(&CommentReq); err != nil {
+	if err := c.Validate(&req); err != nil {
 		return h.NewResponseWithError(c, "validate req failed", err)
 	}
 	// 校验是否开启了评论
-	appinfo, err := h.app.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppType(domain.AppTypeWeb))
+	appInfo, err := h.app.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppType(domain.AppTypeWeb))
 	if err != nil {
 		return h.NewResponseWithError(c, "app info is not found", err)
 	}
-	h.logger.Debug("app info", log.Any("appinfo.comment_enable", appinfo.Settings.WebAppCommentSettings))
-	if !appinfo.Settings.WebAppCommentSettings.IsEnable {
+	if !appInfo.Settings.WebAppCommentSettings.IsEnable {
 		return h.NewResponseWithError(c, "please check comment is open", nil)
 	}
+	// validate captcha token
+	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
+		return h.NewResponseWithError(c, "failed to validate captcha token", nil)
+	}
 
-	// 评论开启
+	for _, url := range req.PicUrls {
+		if !strings.HasPrefix(url, "/static-file/") {
+			return h.NewResponseWithError(c, "validate param pic_urls failed", err)
+		}
+	}
+
 	remoteIP := c.RealIP()
 
 	// get user info --> no enterprise is nil
@@ -99,13 +106,13 @@ func (h *ShareCommentHandler) CreateComment(c echo.Context) error {
 
 	var status = 1 // no moderate
 	// 判断user is moderate comment ---> 默认false
-	if appinfo.Settings.WebAppCommentSettings.ModerationEnable {
+	if appInfo.Settings.WebAppCommentSettings.ModerationEnable {
 		status = 0
 	}
 	commentStatus := domain.CommentStatus(status)
 
 	// 插入到数据库中
-	commentID, err := h.usecase.CreateComment(ctx, &CommentReq, kbID, remoteIP, commentStatus, userIDValue)
+	commentID, err := h.usecase.CreateComment(ctx, &req, kbID, remoteIP, commentStatus, userIDValue)
 	if err != nil {
 		return h.NewResponseWithError(c, "create comment failed", err)
 	}
@@ -140,17 +147,16 @@ func (h *ShareCommentHandler) GetCommentList(c echo.Context) error {
 	}
 
 	// 校验是否开启了评论
-	appinfo, err := h.app.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppType(domain.AppTypeWeb))
+	appInfo, err := h.app.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppType(domain.AppTypeWeb))
 	if err != nil {
 		return h.NewResponseWithError(c, "app info is not found", err)
 	}
-	h.logger.Info("app info", log.Any("appinfo.comment_enable", appinfo.Settings.WebAppCommentSettings))
-	if !appinfo.Settings.WebAppCommentSettings.IsEnable {
+	if !appInfo.Settings.WebAppCommentSettings.IsEnable {
 		return h.NewResponseWithError(c, "please check comment is open", nil)
 	}
 
 	// 查询数据库获取所有评论-->0 所有， 1，2 为需要审核的评论
-	commentsList, err := h.usecase.GetCommentListByNodeID(ctx, nodeID, consts.GetLicenseEdition(c))
+	commentsList, err := h.usecase.GetCommentListByNodeID(ctx, nodeID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get comment list", err)
 	}

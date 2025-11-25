@@ -1,21 +1,27 @@
-import { updateAppDetail } from '@/api';
+import { FreeSoloAutocomplete } from '@/components/FreeSoloAutocomplete';
 import ShowText from '@/components/ShowText';
+import { useCommitPendingInput } from '@/hooks';
+import { getApiV1AppDetail, putApiV1App } from '@/request/App';
+import {
+  DomainAppDetailResp,
+  DomainKnowledgeBaseDetail,
+} from '@/request/types';
+import { useAppSelector } from '@/store';
+import { message } from '@ctzhian/ui';
+import { IconJinggao } from '@panda-wiki/icons';
 import {
   Box,
   FormControlLabel,
   Radio,
   RadioGroup,
+  Stack,
   TextField,
 } from '@mui/material';
-import { Message } from 'ct-mui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import {
-  DomainKnowledgeBaseDetail,
-  DomainAppDetailResp,
-} from '@/request/types';
-import { getApiV1AppDetail } from '@/request/App';
 import { FormItem, SettingCardItem } from './Common';
+import VersionMask from '@/components/VersionMask';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 
 const CardRobotWecomService = ({
   kb,
@@ -27,12 +33,14 @@ const CardRobotWecomService = ({
   const [isEdit, setIsEdit] = useState(false);
   const [detail, setDetail] = useState<DomainAppDetailResp | null>(null);
   const [isEnabled, setIsEnabled] = useState(false);
-
+  const { kb_id } = useAppSelector(state => state.config);
   const {
     control,
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
+    setValue,
   } = useForm({
     defaultValues: {
       wechat_service_is_enabled: false,
@@ -40,6 +48,8 @@ const CardRobotWecomService = ({
       wechat_service_token: '',
       wechat_service_encodingaeskey: '',
       wechat_service_corpid: '',
+      wechat_service_contain_keywords: [] as string[],
+      wechat_service_equal_keywords: [] as string[],
     },
   });
 
@@ -55,25 +65,53 @@ const CardRobotWecomService = ({
         wechat_service_encodingaeskey:
           res.settings?.wechat_service_encodingaeskey ?? '',
         wechat_service_corpid: res.settings?.wechat_service_corpid ?? '',
+        wechat_service_contain_keywords:
+          res.settings?.wechat_service_contain_keywords ?? ([] as string[]),
+        wechat_service_equal_keywords:
+          res.settings?.wechat_service_equal_keywords ?? ([] as string[]),
       });
     });
   };
 
+  const wechat_service_contain_keywords =
+    watch('wechat_service_contain_keywords') || [];
+  const wechat_service_equal_keywords =
+    watch('wechat_service_equal_keywords') || [];
+
+  const containKeywordsField = useCommitPendingInput<string>({
+    value: wechat_service_contain_keywords,
+    setValue: value => {
+      setIsEdit(true);
+      setValue('wechat_service_contain_keywords', value);
+    },
+  });
+
+  const equalKeywordsField = useCommitPendingInput<string>({
+    value: wechat_service_equal_keywords,
+    setValue: value => {
+      setIsEdit(true);
+      setValue('wechat_service_equal_keywords', value);
+    },
+  });
+
   const onSubmit = handleSubmit(data => {
     if (!detail) return;
-    updateAppDetail(
+    putApiV1App(
       { id: detail.id! },
       {
+        kb_id,
         settings: {
           wechat_service_is_enabled: data.wechat_service_is_enabled,
           wechat_service_secret: data.wechat_service_secret,
           wechat_service_token: data.wechat_service_token,
           wechat_service_encodingaeskey: data.wechat_service_encodingaeskey,
           wechat_service_corpid: data.wechat_service_corpid,
+          wechat_service_contain_keywords: data.wechat_service_contain_keywords,
+          wechat_service_equal_keywords: data.wechat_service_equal_keywords,
         },
       },
     ).then(() => {
-      Message.success('保存成功');
+      message.success('保存成功');
       setIsEdit(false);
       getDetail();
       reset();
@@ -218,6 +256,49 @@ const CardRobotWecomService = ({
               )}
             />
           </FormItem>
+          <Stack
+            direction={'row'}
+            alignItems={'center'}
+            gap={1}
+            sx={{ fontSize: 14, fontWeight: 600, color: 'warning.main' }}
+          >
+            <IconJinggao sx={{ fontSize: 18 }} />
+            人工客服转接配置：当用户触发以下场景时，会自动转接人工客服
+          </Stack>
+          <VersionMask permission={PROFESSION_VERSION_PERMISSION}>
+            <FormItem
+              label={
+                <Box>
+                  提问
+                  <Box component={'span'} sx={{ fontWeight: 600 }}>
+                    包含特定
+                  </Box>
+                  关键词
+                </Box>
+              }
+            >
+              <FreeSoloAutocomplete
+                placeholder='回车确认，填写下一个'
+                {...containKeywordsField}
+              />
+            </FormItem>
+            <FormItem
+              label={
+                <Box>
+                  提问
+                  <Box component={'span'} sx={{ fontWeight: 600 }}>
+                    完全匹配
+                  </Box>
+                  关键词
+                </Box>
+              }
+            >
+              <FreeSoloAutocomplete
+                placeholder='回车确认，填写下一个'
+                {...equalKeywordsField}
+              />
+            </FormItem>
+          </VersionMask>
         </>
       )}
     </SettingCardItem>

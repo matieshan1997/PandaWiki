@@ -35,7 +35,7 @@ const PieTrend = ({ chartData, height, text }: PropsData) => {
           const { name, value } = params;
           return `<div style="font-family: G;color: #21222D;display: flex;gap: 16px; min-width: 100px">
           <div style='color: rgba(33,34,35,0.5);flex-grow: 1;'>${name || '-'}</div>
-          <div style='font-family: Gbold;flex-shrink: 0'>${value || 0}</div>
+          <div style='font-weight: 700;flex-shrink: 0'>${value || 0}</div>
           </div>`;
         },
       },
@@ -92,7 +92,7 @@ const PieTrend = ({ chartData, height, text }: PropsData) => {
             top: '50%',
             transform: 'translate(-50%, -50%)',
             fontSize: '20px',
-            fontFamily: 'Gbold',
+            fontWeight: 700,
             color: '#21222D',
           }}
         >

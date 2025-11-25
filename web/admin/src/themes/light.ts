@@ -56,7 +56,7 @@ const light = {
   text: {
     primary: '#21222D',
     secondary: 'rgba(33,34,35,0.7)',
-    auxiliary: 'rgba(33,34,35,0.5)',
+    tertiary: '#646a73',
     slave: 'rgba(33,34,35,0.3)',
     disabled: 'rgba(33,34,35,0.2)',
     inverse: '#FFFFFF',
@@ -64,9 +64,9 @@ const light = {
     inverseDisabled: 'rgba(255,255,255,0.15)',
   },
   background: {
-    paper0: '#F1F2F8',
     paper: '#FFFFFF',
-    paper2: '#F8F9FA',
+    paper2: '#F1F2F8',
+    paper3: '#F8F9FA',
     default: '#FFFFFF',
     chip: '#FFFFFF',
     circle: '#E6E8EC',

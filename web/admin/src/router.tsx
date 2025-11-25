@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import LinearProgress from '@mui/material/LinearProgress';
 import { styled } from '@mui/material/styles';
+import { MainLayout, NoSidebarHeaderLayout } from './layouts';
+
 import {
   LazyExoticComponent,
   Suspense,
@@ -36,43 +37,101 @@ const LazyLoadable = (
 const router = [
   {
     path: '/',
-    element: createElement(
-      LazyLoadable(lazy(() => import('./pages/document'))),
-    ),
+    element: <MainLayout />,
+    children: [
+      {
+        path: '',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/document'))),
+        ),
+      },
+      {
+        path: '/setting',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/setting'))),
+        ),
+      },
+      {
+        path: '/contribution',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/contribution'))),
+        ),
+      },
+      {
+        path: '/release',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/release'))),
+        ),
+      },
+      {
+        path: '/stat',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/stat'))),
+        ),
+      },
+      {
+        path: '/conversation',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/conversation'))),
+        ),
+      },
+      {
+        path: '/feedback/:tab?',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/feedback'))),
+        ),
+      },
+    ],
   },
   {
-    path: '/doc/editor/:id',
-    element: createElement(
-      LazyLoadable(lazy(() => import('./pages/document/editor'))),
-    ),
+    path: '/',
+    element: <NoSidebarHeaderLayout hasAuth={true} />,
+    children: [
+      {
+        path: 'doc/editor',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/document/editor'))),
+        ),
+        children: [
+          {
+            path: ':id',
+            element: createElement(
+              LazyLoadable(lazy(() => import('./pages/document/editor/edit'))),
+            ),
+          },
+          {
+            path: 'history/:id',
+            element: createElement(
+              LazyLoadable(
+                lazy(() => import('./pages/document/editor/history')),
+              ),
+            ),
+          },
+          {
+            path: 'space',
+            element: createElement(
+              LazyLoadable(lazy(() => import('./pages/document/editor/space'))),
+            ),
+          },
+        ],
+      },
+    ],
   },
   {
-    path: '/login',
-    element: createElement(LazyLoadable(lazy(() => import('./pages/login')))),
-  },
-  {
-    path: '/setting',
-    element: createElement(LazyLoadable(lazy(() => import('./pages/setting')))),
-  },
-  {
-    path: '/release',
-    element: createElement(LazyLoadable(lazy(() => import('./pages/release')))),
-  },
-  {
-    path: '/stat',
-    element: createElement(LazyLoadable(lazy(() => import('./pages/stat')))),
-  },
-  {
-    path: '/conversation',
-    element: createElement(
-      LazyLoadable(lazy(() => import('./pages/conversation'))),
-    ),
-  },
-  {
-    path: '/feedback/:tab?',
-    element: createElement(
-      LazyLoadable(lazy(() => import('./pages/feedback'))),
-    ),
+    path: '/',
+    element: <NoSidebarHeaderLayout hasAuth={false} />,
+    children: [
+      {
+        path: 'login',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/login'))),
+        ),
+      },
+      {
+        path: '401',
+        element: createElement(LazyLoadable(lazy(() => import('./pages/401')))),
+      },
+    ],
   },
 ];
 

@@ -1,56 +1,78 @@
-import { getModelList, ModelListItem } from '@/api';
-import ErrorJSON from '@/assets/json/error.json';
-import Card from '@/components/Card';
-import { ModelProvider } from '@/constant/enums';
+import { getApiV1ModelList } from '@/request/Model';
+import { GithubComChaitinPandaWikiDomainModelListItem } from '@/request/types';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { setModelStatus } from '@/store/slices/config';
-import { addOpacityToColor } from '@/utils';
-import { Box, Button, Stack, Tooltip, useTheme } from '@mui/material';
-import { Icon, Modal } from 'ct-mui';
-import { useEffect, useState } from 'react';
-import LottieIcon from '../LottieIcon';
+import { setModelList, setModelStatus } from '@/store/slices/config';
+import { Modal } from '@ctzhian/ui';
+import { IconAChilunshezhisheding } from '@panda-wiki/icons';
+import { Box, Button, Tab, Tabs, useTheme } from '@mui/material';
+import { useEffect, useState, useRef } from 'react';
+
 import Member from './component/Member';
-import ModelAdd from './component/ModelAdd';
+import ModelConfig, { ModelConfigRef } from './component/ModelConfig';
+
+const SystemTabs = [
+  { label: '模型配置', id: 'model-config' },
+  { label: '用户管理', id: 'user-management' },
+];
 
 const System = () => {
   const theme = useTheme();
-  const { user } = useAppSelector(state => state.config);
+  const { user, modelList, isCreateWikiModalOpen } = useAppSelector(
+    state => state.config,
+  );
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('model-config');
   const dispatch = useAppDispatch();
-  const [addOpen, setAddOpen] = useState(false);
-  const [addType, setAddType] = useState<'chat' | 'embedding' | 'rerank'>(
-    'chat',
-  );
-  const [chatModelData, setChatModelData] = useState<ModelListItem | null>(
-    null,
-  );
+  const modelConfigRef = useRef<ModelConfigRef>(null);
+  const [chatModelData, setChatModelData] =
+    useState<GithubComChaitinPandaWikiDomainModelListItem | null>(null);
   const [embeddingModelData, setEmbeddingModelData] =
-    useState<ModelListItem | null>(null);
-  const [rerankModelData, setRerankModelData] = useState<ModelListItem | null>(
-    null,
-  );
+    useState<GithubComChaitinPandaWikiDomainModelListItem | null>(null);
+  const [rerankModelData, setRerankModelData] =
+    useState<GithubComChaitinPandaWikiDomainModelListItem | null>(null);
+  const [analysisModelData, setAnalysisModelData] =
+    useState<GithubComChaitinPandaWikiDomainModelListItem | null>(null);
+  const [analysisVLModelData, setAnalysisVLModelData] =
+    useState<GithubComChaitinPandaWikiDomainModelListItem | null>(null);
 
-  const disabledClose =
-    !chatModelData || !embeddingModelData || !rerankModelData;
-
-  const getModel = () => {
-    getModelList().then(res => {
-      const chat = res.find(it => it.type === 'chat') || null;
-      const embedding = res.find(it => it.type === 'embedding') || null;
-      const rerank = res.find(it => it.type === 'rerank') || null;
-      setChatModelData(chat);
-      setEmbeddingModelData(embedding);
-      setRerankModelData(rerank);
-
-      const status = chat && embedding && rerank;
-      dispatch(setModelStatus(status));
-      if (!status) setOpen(true);
+  const getModelList = () => {
+    getApiV1ModelList().then(res => {
+      dispatch(
+        setModelList(res as GithubComChaitinPandaWikiDomainModelListItem[]),
+      );
     });
   };
 
+  const handleModelList = (
+    list: GithubComChaitinPandaWikiDomainModelListItem[],
+  ) => {
+    const chat = list.find(it => it.type === 'chat') || null;
+    const embedding = list.find(it => it.type === 'embedding') || null;
+    const rerank = list.find(it => it.type === 'rerank') || null;
+    const analysis = list.find(it => it.type === 'analysis') || null;
+    const analysisVL = list.find(it => it.type === 'analysis-vl') || null;
+    setChatModelData(chat);
+    setEmbeddingModelData(embedding);
+    setRerankModelData(rerank);
+    setAnalysisModelData(analysis);
+    setAnalysisVLModelData(analysisVL);
+
+    // 检查模型配置状态
+    const status = !!(chat && embedding && rerank);
+    dispatch(setModelStatus(status));
+  };
+
   useEffect(() => {
-    getModel();
-  }, []);
+    if (modelList) {
+      handleModelList(modelList);
+    }
+  }, [modelList]);
+
+  useEffect(() => {
+    if (isCreateWikiModalOpen) {
+      setOpen(false);
+    }
+  }, [isCreateWikiModalOpen]);
 
   return (
     <>
@@ -59,563 +81,87 @@ const System = () => {
           <Button
             size='small'
             variant='outlined'
-            startIcon={<Icon type='icon-a-chilunshezhisheding' />}
+            startIcon={<IconAChilunshezhisheding />}
             onClick={() => setOpen(true)}
           >
             系统配置
           </Button>
         )}
-
-        {(!chatModelData || !embeddingModelData || !rerankModelData) && (
-          <Tooltip arrow title='暂未配置模型'>
-            <Stack
-              alignItems={'center'}
-              justifyContent={'center'}
-              sx={{
-                width: 22,
-                height: 22,
-                cursor: 'pointer',
-                position: 'absolute',
-                top: '-4px',
-                right: '-8px',
-                bgcolor: '#fff',
-                borderRadius: '50%',
-              }}
-            >
-              <LottieIcon
-                id='warning'
-                src={ErrorJSON}
-                style={{ width: 20, height: 20 }}
-              />
-            </Stack>
-          </Tooltip>
-        )}
       </Box>
       <Modal
         title='系统配置'
-        width={1000}
+        width={1100}
         open={open}
-        closable={!disabledClose}
-        disableEscapeKeyDown={disabledClose}
+        disableEnforceFocus={true}
         footer={null}
-        onCancel={() => setOpen(false)}
+        onCancel={() => {
+          if (activeTab === 'model-config' && modelConfigRef.current) {
+            modelConfigRef.current.handleClose();
+          } else {
+            setOpen(false);
+          }
+        }}
       >
-        <Stack gap={2}>
-          <Member />
-          <Card
-            sx={{
-              flex: 1,
-              p: 2,
-              overflow: 'hidden',
-              overflowY: 'auto',
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            {!chatModelData ? (
-              <>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  gap={1}
-                  sx={{
-                    fontSize: 14,
-                    lineHeight: '24px',
-                    fontWeight: 'bold',
-                    mb: 2,
-                  }}
-                >
-                  Chat 模型
-                  <Stack
-                    alignItems={'center'}
-                    justifyContent={'center'}
-                    sx={{
-                      width: 22,
-                      height: 22,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <LottieIcon
-                      id='warning'
-                      src={ErrorJSON}
-                      style={{ width: 20, height: 20 }}
-                    />
-                  </Stack>
-                  <Box sx={{ color: 'error.main' }}>
-                    未配置无法使用，如果没有可用模型，可参考&nbsp;
-                    <Box
-                      component={'a'}
-                      sx={{ color: 'primary.main', cursor: 'pointer' }}
-                      href='https://pandawiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
-                      target='_blank'
-                    >
-                      文档
-                    </Box>
-                  </Box>
-                </Stack>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  justifyContent={'center'}
-                  sx={{ my: '0px', ml: 2, fontSize: 14 }}
-                >
-                  <Box sx={{ height: '20px', color: 'text.auxiliary' }}>
-                    尚未配置，
-                  </Box>
-                  <Button
-                    sx={{ minWidth: 0, px: 0, height: '20px' }}
-                    onClick={() => {
-                      setAddOpen(true);
-                      setAddType('chat');
-                    }}
-                  >
-                    去添加
-                  </Button>
-                </Stack>
-              </>
-            ) : (
-              <>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  justifyContent={'space-between'}
-                  gap={1}
-                  sx={{ mt: 1 }}
-                >
-                  <Stack
-                    direction={'row'}
-                    alignItems={'center'}
-                    gap={1}
-                    sx={{ width: 500 }}
-                  >
-                    <Icon
-                      type={
-                        ModelProvider[
-                          chatModelData.provider as keyof typeof ModelProvider
-                        ].icon
-                      }
-                      sx={{ fontSize: 18 }}
-                    />
-                    <Box
-                      sx={{
-                        fontSize: 14,
-                        lineHeight: '20px',
-                        color: 'text.auxiliary',
-                      }}
-                    >
-                      {ModelProvider[
-                        chatModelData.provider as keyof typeof ModelProvider
-                      ].cn ||
-                        ModelProvider[
-                          chatModelData.provider as keyof typeof ModelProvider
-                        ].label ||
-                        '其他'}
-                      &nbsp;&nbsp;/
-                    </Box>
-                    <Box
-                      sx={{
-                        fontSize: 14,
-                        lineHeight: '20px',
-                        fontFamily: 'Gbold',
-                        ml: -0.5,
-                      }}
-                    >
-                      {chatModelData.model}
-                    </Box>
-                    <Box
-                      sx={{
-                        fontSize: 12,
-                        px: 1,
-                        lineHeight: '20px',
-                        borderRadius: '10px',
-                        bgcolor: addOpacityToColor(
-                          theme.palette.primary.main,
-                          0.1,
-                        ),
-                        color: 'primary.main',
-                      }}
-                    >
-                      Chat 模型
-                    </Box>
-                  </Stack>
-                  <Box
-                    sx={{
-                      fontSize: 12,
-                      px: 1,
-                      lineHeight: '20px',
-                      borderRadius: '10px',
-                      bgcolor: addOpacityToColor(
-                        theme.palette.success.main,
-                        0.1,
-                      ),
-                      color: 'success.main',
-                    }}
-                  >
-                    状态正常
-                  </Box>
-                  {chatModelData && (
-                    <Button
-                      size='small'
-                      variant='outlined'
-                      onClick={() => {
-                        setAddOpen(true);
-                        setAddType('chat');
-                      }}
-                    >
-                      修改
-                    </Button>
-                  )}
-                </Stack>
-              </>
-            )}
-          </Card>
-          <Card
-            sx={{
-              flex: 1,
-              p: 2,
-              overflow: 'hidden',
-              overflowY: 'auto',
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            {!embeddingModelData ? (
-              <>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  gap={1}
-                  sx={{
-                    fontSize: 14,
-                    lineHeight: '24px',
-                    fontWeight: 'bold',
-                    mb: 2,
-                  }}
-                >
-                  Embedding 模型
-                  <Stack
-                    alignItems={'center'}
-                    justifyContent={'center'}
-                    sx={{
-                      width: 22,
-                      height: 22,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <LottieIcon
-                      id='warning'
-                      src={ErrorJSON}
-                      style={{ width: 20, height: 20 }}
-                    />
-                  </Stack>
-                  <Box sx={{ color: 'error.main' }}>
-                    未配置无法使用，如果没有可用模型，可参考&nbsp;
-                    <Box
-                      component={'a'}
-                      sx={{ color: 'primary.main', cursor: 'pointer' }}
-                      href='https://pandawiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
-                      target='_blank'
-                    >
-                      文档
-                    </Box>
-                  </Box>
-                </Stack>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  justifyContent={'center'}
-                  sx={{ my: '0px', ml: 2, fontSize: 14 }}
-                >
-                  <Box sx={{ height: '20px', color: 'text.auxiliary' }}>
-                    尚未配置，
-                  </Box>
-                  <Button
-                    sx={{ minWidth: 0, px: 0, height: '20px' }}
-                    onClick={() => {
-                      setAddOpen(true);
-                      setAddType('embedding');
-                    }}
-                  >
-                    去添加
-                  </Button>
-                </Stack>
-              </>
-            ) : (
-              <>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  justifyContent={'space-between'}
-                  gap={1}
-                >
-                  <Stack
-                    direction={'row'}
-                    alignItems={'center'}
-                    gap={1}
-                    sx={{ width: 500 }}
-                  >
-                    <Icon
-                      type={
-                        ModelProvider[
-                          embeddingModelData.provider as keyof typeof ModelProvider
-                        ].icon
-                      }
-                      sx={{ fontSize: 18 }}
-                    />
-                    <Box
-                      sx={{
-                        fontSize: 14,
-                        lineHeight: '20px',
-                        color: 'text.auxiliary',
-                      }}
-                    >
-                      {ModelProvider[
-                        embeddingModelData.provider as keyof typeof ModelProvider
-                      ].cn ||
-                        ModelProvider[
-                          embeddingModelData.provider as keyof typeof ModelProvider
-                        ].label ||
-                        '其他'}
-                      &nbsp;&nbsp;/
-                    </Box>
-                    <Box
-                      sx={{
-                        fontSize: 14,
-                        lineHeight: '20px',
-                        fontFamily: 'Gbold',
-                        ml: -0.5,
-                      }}
-                    >
-                      {embeddingModelData.model}
-                    </Box>
-                    <Box
-                      sx={{
-                        fontSize: 12,
-                        px: 1,
-                        lineHeight: '20px',
-                        borderRadius: '10px',
-                        bgcolor: addOpacityToColor(
-                          theme.palette.primary.main,
-                          0.1,
-                        ),
-                        color: 'primary.main',
-                      }}
-                    >
-                      Embedding 模型
-                    </Box>
-                  </Stack>
-                  <Box
-                    sx={{
-                      fontSize: 12,
-                      px: 1,
-                      lineHeight: '20px',
-                      borderRadius: '10px',
-                      bgcolor: addOpacityToColor(
-                        theme.palette.success.main,
-                        0.1,
-                      ),
-                      color: 'success.main',
-                    }}
-                  >
-                    状态正常
-                  </Box>
-                  {embeddingModelData && (
-                    <Button
-                      size='small'
-                      variant='outlined'
-                      onClick={() => {
-                        setAddOpen(true);
-                        setAddType('embedding');
-                      }}
-                    >
-                      修改
-                    </Button>
-                  )}
-                </Stack>
-              </>
-            )}
-          </Card>
-          <Card
-            sx={{
-              flex: 1,
-              p: 2,
-              overflow: 'hidden',
-              overflowY: 'auto',
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            {!rerankModelData ? (
-              <>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  gap={1}
-                  sx={{
-                    fontSize: 14,
-                    lineHeight: '24px',
-                    fontWeight: 'bold',
-                    mb: 2,
-                  }}
-                >
-                  Rerank 模型
-                  <Stack
-                    alignItems={'center'}
-                    justifyContent={'center'}
-                    sx={{
-                      width: 22,
-                      height: 22,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <LottieIcon
-                      id='warning'
-                      src={ErrorJSON}
-                      style={{ width: 20, height: 20 }}
-                    />
-                  </Stack>
-                  <Box sx={{ color: 'error.main' }}>
-                    未配置无法使用，如果没有可用模型，可参考&nbsp;
-                    <Box
-                      component={'a'}
-                      sx={{ color: 'primary.main', cursor: 'pointer' }}
-                      href='https://pandawiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
-                      target='_blank'
-                    >
-                      文档
-                    </Box>
-                  </Box>
-                </Stack>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  justifyContent={'center'}
-                  sx={{ my: '0px', ml: 2, fontSize: 14 }}
-                >
-                  <Box sx={{ height: '20px', color: 'text.auxiliary' }}>
-                    尚未配置，
-                  </Box>
-                  <Button
-                    sx={{ minWidth: 0, px: 0, height: '20px' }}
-                    onClick={() => {
-                      setAddOpen(true);
-                      setAddType('rerank');
-                    }}
-                  >
-                    去添加
-                  </Button>
-                </Stack>
-              </>
-            ) : (
-              <>
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  justifyContent={'space-between'}
-                  gap={1}
-                >
-                  <Stack
-                    direction={'row'}
-                    alignItems={'center'}
-                    gap={1}
-                    sx={{ width: 500 }}
-                  >
-                    <Icon
-                      type={
-                        ModelProvider[
-                          rerankModelData.provider as keyof typeof ModelProvider
-                        ].icon
-                      }
-                      sx={{ fontSize: 18 }}
-                    />
-                    <Box
-                      sx={{
-                        fontSize: 14,
-                        lineHeight: '20px',
-                        color: 'text.auxiliary',
-                      }}
-                    >
-                      {ModelProvider[
-                        rerankModelData.provider as keyof typeof ModelProvider
-                      ].cn ||
-                        ModelProvider[
-                          rerankModelData.provider as keyof typeof ModelProvider
-                        ].label ||
-                        '其他'}
-                      &nbsp;&nbsp;/
-                    </Box>
-                    <Box
-                      sx={{
-                        fontSize: 14,
-                        lineHeight: '20px',
-                        fontFamily: 'Gbold',
-                        ml: -0.5,
-                      }}
-                    >
-                      {rerankModelData.model}
-                    </Box>
-                    <Box
-                      sx={{
-                        fontSize: 12,
-                        px: 1,
-                        lineHeight: '20px',
-                        borderRadius: '10px',
-                        bgcolor: addOpacityToColor(
-                          theme.palette.primary.main,
-                          0.1,
-                        ),
-                        color: 'primary.main',
-                      }}
-                    >
-                      Rerank 模型
-                    </Box>
-                  </Stack>
-                  <Box
-                    sx={{
-                      fontSize: 12,
-                      px: 1,
-                      lineHeight: '20px',
-                      borderRadius: '10px',
-                      bgcolor: addOpacityToColor(
-                        theme.palette.success.main,
-                        0.1,
-                      ),
-                      color: 'success.main',
-                    }}
-                  >
-                    状态正常
-                  </Box>
-                  {rerankModelData && (
-                    <Button
-                      size='small'
-                      variant='outlined'
-                      onClick={() => {
-                        setAddOpen(true);
-                        setAddType('rerank');
-                      }}
-                    >
-                      修改
-                    </Button>
-                  )}
-                </Stack>
-              </>
-            )}
-          </Card>
-        </Stack>
+        <Tabs
+          value={activeTab}
+          onChange={(event, newValue) => setActiveTab(newValue)}
+          aria-label='system tabs'
+          sx={{
+            mb: 2,
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTabs-indicator': {
+              display: 'none',
+            },
+            '& .MuiTab-root': {
+              minHeight: 48,
+              textTransform: 'none',
+              fontSize: '14px',
+              fontWeight: 400,
+              color: theme.palette.text.secondary,
+              position: 'relative',
+              '&.Mui-selected': {
+                color: theme.palette.primary.main,
+                fontWeight: 500,
+              },
+              '&.Mui-selected::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '40px',
+                height: '2px',
+                backgroundColor: theme.palette.primary.main,
+                zIndex: 1,
+              },
+            },
+          }}
+        >
+          {SystemTabs.map(tab => (
+            <Tab key={tab.id} label={tab.label} value={tab.id} />
+          ))}
+        </Tabs>
+        {activeTab === 'user-management' && (
+          <Box>
+            <Member />
+          </Box>
+        )}
+        {activeTab === 'model-config' && (
+          <Box>
+            <ModelConfig
+              ref={modelConfigRef}
+              onCloseModal={() => setOpen(false)}
+              chatModelData={chatModelData}
+              embeddingModelData={embeddingModelData}
+              rerankModelData={rerankModelData}
+              analysisModelData={analysisModelData}
+              analysisVLModelData={analysisVLModelData}
+              getModelList={getModelList}
+            />
+          </Box>
+        )}
       </Modal>
-      <ModelAdd
-        open={addOpen}
-        type={addType}
-        data={
-          addType === 'chat'
-            ? chatModelData
-            : addType === 'embedding'
-              ? embeddingModelData
-              : rerankModelData
-        }
-        onClose={() => setAddOpen(false)}
-        refresh={getModel}
-      />
     </>
   );
 };

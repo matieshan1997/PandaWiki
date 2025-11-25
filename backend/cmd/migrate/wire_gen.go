@@ -35,11 +35,13 @@ func createApp() (*App, error) {
 	}
 	logger := log.NewLogger(configConfig)
 	nodeRepository := pg2.NewNodeRepository(db, logger)
+	appRepository := pg2.NewAppRepository(db, logger)
 	mqProducer, err := mq.NewMQProducer(configConfig, logger)
 	if err != nil {
 		return nil, err
 	}
 	ragRepository := mq2.NewRAGRepository(mqProducer)
+	userRepository := pg2.NewUserRepository(db, logger)
 	ragService, err := rag.NewRAGService(configConfig, logger)
 	if err != nil {
 		return nil, err
@@ -53,20 +55,24 @@ func createApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, ragRepository, knowledgeBaseRepository, llmUsecase, logger, minioClient, modelRepository)
-	userRepository := pg2.NewUserRepository(db, logger)
 	cacheCache, err := cache.NewCache(configConfig)
 	if err != nil {
 		return nil, err
 	}
+	authRepo := pg2.NewAuthRepo(db, logger, cacheCache)
+	systemSettingRepo := pg2.NewSystemSettingRepo(db, logger)
+	modelUsecase := usecase.NewModelUsecase(modelRepository, nodeRepository, ragRepository, ragService, logger, configConfig, knowledgeBaseRepository, systemSettingRepo)
+	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase)
 	kbRepo := cache2.NewKBRepo(cacheCache)
 	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, logger, configConfig)
 	if err != nil {
 		return nil, err
 	}
 	migrationNodeVersion := fns.NewMigrationNodeVersion(logger, nodeUsecase, knowledgeBaseUsecase, ragRepository)
+	migrationCreateBotAuth := fns.NewMigrationCreateBotAuth(logger)
 	migrationFuncs := &migration.MigrationFuncs{
-		NodeMigration: migrationNodeVersion,
+		NodeMigration:    migrationNodeVersion,
+		BotAuthMigration: migrationCreateBotAuth,
 	}
 	manager, err := migration.NewManager(db, logger, migrationFuncs)
 	if err != nil {

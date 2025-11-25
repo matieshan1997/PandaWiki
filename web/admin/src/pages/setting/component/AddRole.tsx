@@ -1,16 +1,21 @@
 import { Box, Tooltip, Stack, Select, MenuItem, Radio } from '@mui/material';
 import { getApiV1UserList } from '@/request/User';
 import { postApiV1KnowledgeBaseUserInvite } from '@/request/KnowledgeBase';
-import { ConstsUserKBPermission, V1UserListItemResp } from '@/request/types';
+import {
+  ConstsUserKBPermission,
+  V1KBUserInviteReq,
+  V1UserListItemResp,
+} from '@/request/types';
 import { FormItem } from '@/components/Form';
 import NoData from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
-import { Message, Modal, Table } from 'ct-mui';
-import InfoIcon from '@mui/icons-material/Info';
+import { message, Modal, Table } from '@ctzhian/ui';
 import dayjs from 'dayjs';
-import { ColumnType } from 'ct-mui/dist/Table';
+import { ColumnType } from '@ctzhian/ui/dist/Table';
 import { useEffect, useMemo, useState } from 'react';
 import { useAppSelector } from '@/store';
+import { VersionCanUse } from '@/components/VersionMask';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 
 interface AddRoleProps {
   open: boolean;
@@ -20,27 +25,21 @@ interface AddRoleProps {
 }
 
 const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
-  const { kb_id, license } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
+  const { license } = useAppSelector(state => state.config);
   const [list, setList] = useState<V1UserListItemResp[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string>('');
-  const [selectedUser, setSelectedUser] = useState<V1UserListItemResp | null>(
-    null,
-  );
-  const [perm, setPerm] = useState<ConstsUserKBPermission>(
+  const [perm, setPerm] = useState<V1KBUserInviteReq['perm']>(
     ConstsUserKBPermission.UserKBPermissionFullControl,
   );
-
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
-  }, [license]);
 
   const columns: ColumnType<V1UserListItemResp>[] = [
     {
       title: '',
       dataIndex: 'id',
       width: 80,
-      render: (text: string, record) => (
+      render: (text: string) => (
         <Tooltip
           arrow
           placement='top'
@@ -54,7 +53,6 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
               checked={selectedRowKeys === text}
               onChange={() => {
                 setSelectedRowKeys(text);
-                setSelectedUser(record);
               }}
               sx={{
                 '.MuiTouchRipple-root': {
@@ -96,7 +94,7 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
 
   const onSubmit = () => {
     if (!selectedRowKeys) {
-      Message.error('请选择用户');
+      message.error('请选择用户');
       return;
     }
     postApiV1KnowledgeBaseUserInvite({
@@ -105,7 +103,7 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
       perm,
     }).then(() => {
       onOk();
-      Message.success('添加成功');
+      message.success('添加成功');
     });
   };
 
@@ -113,15 +111,20 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
     if (open) {
       getData();
     } else {
-      setSelectedUser(null);
       setSelectedRowKeys('');
-      setPerm(ConstsUserKBPermission.UserKBPermissionFullControl);
+      setPerm(
+        ConstsUserKBPermission.UserKBPermissionFullControl as V1KBUserInviteReq['perm'],
+      );
     }
   }, [open]);
 
+  const isPro = useMemo(() => {
+    return PROFESSION_VERSION_PERMISSION.includes(license.edition!);
+  }, [license.edition]);
+
   return (
     <Modal
-      title='添加管理员'
+      title='添加 Wiki 站管理员'
       open={open}
       onCancel={onCancel}
       onOk={onSubmit}
@@ -130,11 +133,8 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
       <Card
         sx={{
           py: 2,
-          overflow: 'hidden',
-          overflowY: 'auto',
           border: '1px solid',
           borderColor: 'divider',
-          maxHeight: 'calc(100vh - 200px)',
         }}
       >
         <Table
@@ -144,6 +144,10 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
           size='small'
           updateScrollTop={false}
           sx={{
+            '.MuiTableContainer-root': {
+              maxHeight: 'calc(100vh - 370px)',
+              minHeight: 200,
+            },
             '& .MuiTableCell-root': {
               height: 40,
               '&:first-of-type': {
@@ -181,7 +185,7 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
                   sx={{
                     fontSize: 12,
                     lineHeight: '20px',
-                    color: 'text.auxiliary',
+                    color: 'text.tertiary',
                   }}
                 >
                   暂无数据
@@ -208,22 +212,33 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
           fullWidth
           sx={{ height: 52 }}
           value={perm}
-          onChange={e => setPerm(e.target.value as ConstsUserKBPermission)}
+          MenuProps={{
+            sx: {
+              '.Mui-disabled': {
+                opacity: '1 !important',
+                color: 'text.disabled',
+              },
+            },
+          }}
+          onChange={e => setPerm(e.target.value as V1KBUserInviteReq['perm'])}
         >
           <MenuItem value={ConstsUserKBPermission.UserKBPermissionFullControl}>
             完全控制
           </MenuItem>
+
           <MenuItem
-            disabled={!isEnterprise}
             value={ConstsUserKBPermission.UserKBPermissionDocManage}
+            disabled={!isPro}
           >
-            文档管理 {isEnterprise ? '' : '(企业版可用)'}
+            文档管理{' '}
+            <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
           </MenuItem>
           <MenuItem
-            disabled={!isEnterprise}
             value={ConstsUserKBPermission.UserKBPermissionDataOperate}
+            disabled={!isPro}
           >
-            数据运营 {isEnterprise ? '' : '(企业版可用)'}
+            数据运营{' '}
+            <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
           </MenuItem>
         </Select>
       </FormItem>

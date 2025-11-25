@@ -11,7 +11,7 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 
 const CardProxy = ({
@@ -25,8 +25,8 @@ const CardProxy = ({
   const [hasProxy, setHasProxy] = useState(
     !!kb.access_settings?.trusted_proxies?.length,
   );
-  const [proxyIP, setProxyIP] = useState(
-    kb.access_settings?.trusted_proxies?.[0] || '',
+  const [proxyIPs, setProxyIPs] = useState<string[]>(
+    kb.access_settings?.trusted_proxies || [],
   );
 
   const handleSave = () => {
@@ -35,21 +35,23 @@ const CardProxy = ({
         id: kb.id,
         access_settings: {
           ...kb.access_settings,
-          trusted_proxies: hasProxy ? [proxyIP] : null,
+          trusted_proxies: hasProxy
+            ? proxyIPs.filter(ip => ip.trim() !== '')
+            : null,
         },
       }).then(() => {
-        Message.success('保存成功');
+        message.success('保存成功');
         setIsEdit(false);
         refresh();
       });
     } catch (e) {
-      Message.error('保存失败');
+      message.error('保存失败');
     }
   };
 
   useEffect(() => {
     setHasProxy(!!kb.access_settings?.trusted_proxies?.length);
-    setProxyIP(kb.access_settings?.trusted_proxies?.[0] || '');
+    setProxyIPs(kb.access_settings?.trusted_proxies || []);
   }, [kb]);
 
   return (
@@ -60,7 +62,7 @@ const CardProxy = ({
           sx={{
             flexGrow: 1,
             fontSize: 12,
-            color: 'text.auxiliary',
+            color: 'text.tertiary',
             ml: 1,
             fontWeight: 'normal',
           }}
@@ -77,8 +79,8 @@ const CardProxy = ({
             value={hasProxy}
             onChange={e => {
               setHasProxy(e.target.value === 'true');
-              if (proxyIP === '') {
-                setProxyIP('0.0.0.0/0');
+              if (proxyIPs.length === 0) {
+                setProxyIPs(['0.0.0.0/0']);
               }
               setIsEdit(true);
             }}
@@ -100,13 +102,17 @@ const CardProxy = ({
       </FormItem>
 
       {hasProxy && (
-        <FormItem label='可信代理 IP'>
+        <FormItem label='可信代理列表' sx={{ alignItems: 'flex-start' }}>
           <TextField
             fullWidth
-            label='可信代理 IP'
-            value={proxyIP}
+            label='可信代理 IP 或 CIDR（换行分隔）'
+            multiline
+            minRows={2}
+            value={proxyIPs.join('\n')}
+            helperText='支持填写多个 IP 或 CIDR，每行一个'
             onChange={e => {
-              setProxyIP(e.target.value);
+              const lines = e.target.value.split(/\r?\n/).map(s => s.trim());
+              setProxyIPs(lines);
               setIsEdit(true);
             }}
           />

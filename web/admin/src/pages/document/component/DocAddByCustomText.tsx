@@ -1,26 +1,48 @@
-import { createNode, NodeDetail, updateNode } from '@/api';
 import Emoji from '@/components/Emoji';
+import { DomainCreateNodeReq, V1NodeDetailResp } from '@/request';
+import { postApiV1Node, putApiV1NodeDetail } from '@/request/Node';
 import { useAppSelector } from '@/store';
-import { Box, TextField } from '@mui/material';
-import { Message, Modal } from 'ct-mui';
+import { message, Modal } from '@ctzhian/ui';
+import {
+  Box,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+  TextField,
+} from '@mui/material';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
+type FormValues = { name: string; emoji: string; content_type: string };
+
 interface DocAddByCustomTextProps {
   open: boolean;
-  data?: NodeDetail | null;
+  data?: V1NodeDetailResp;
+  autoJump?: boolean;
   onClose: () => void;
-  setDetail?: (data: NodeDetail) => void;
+  parentId?: string;
+  setDetail?: (data: V1NodeDetailResp) => void;
   refresh?: () => void;
   type?: 1 | 2;
+  onCreated?: (node: {
+    id: string;
+    name: string;
+    type: 1 | 2;
+    content_type?: string;
+    emoji?: string;
+  }) => void;
 }
+
 const DocAddByCustomText = ({
   open,
   data,
+  autoJump = true,
+  parentId,
   onClose,
   refresh,
   setDetail,
   type = 2,
+  onCreated,
 }: DocAddByCustomTextProps) => {
   const { kb_id: id } = useAppSelector(state => state.config);
   const text = type === 1 ? '文件夹' : '文档';
@@ -29,11 +51,13 @@ const DocAddByCustomText = ({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
-  } = useForm<{ name: string; emoji: string }>({
+  } = useForm<FormValues>({
     defaultValues: {
       name: '',
       emoji: '',
+      content_type: '',
     },
   });
 
@@ -42,20 +66,19 @@ const DocAddByCustomText = ({
     onClose();
   };
 
-  const submit = (value: { name: string; emoji: string }) => {
+  const submit = (value: FormValues) => {
     if (data) {
-      updateNode({
-        id: data.id,
+      putApiV1NodeDetail({
+        id: data.id || '',
         kb_id: id,
         name: value.name,
         emoji: value.emoji,
       }).then(() => {
-        Message.success('修改成功');
+        message.success('修改成功');
         reset();
         handleClose();
         refresh?.();
         setDetail?.({
-          ...data,
           name: value.name,
           meta: { ...data.meta, emoji: value.emoji },
           status: 1,
@@ -63,19 +86,30 @@ const DocAddByCustomText = ({
       });
     } else {
       if (!id) return;
-      createNode({
+      const params: DomainCreateNodeReq = {
         name: value.name,
         content: '',
         kb_id: id,
-        parent_id: null,
         type,
         emoji: value.emoji,
-      }).then(({ id }) => {
-        Message.success('创建成功');
+        content_type: value.content_type,
+      };
+      if (parentId) {
+        params.parent_id = parentId;
+      }
+      postApiV1Node(params).then(({ id }) => {
+        message.success('创建成功');
         reset();
         handleClose();
-        refresh?.();
-        if (type === 2) {
+        // 回传创建结果给上层，由上层本地追加并滚动
+        onCreated?.({
+          id,
+          name: value.name,
+          type,
+          content_type: value.content_type,
+          emoji: value.emoji,
+        });
+        if (type === 2 && autoJump) {
           window.open(`/doc/editor/${id}`, '_blank');
         }
       });
@@ -83,14 +117,18 @@ const DocAddByCustomText = ({
   };
 
   useEffect(() => {
+    if (!open) return;
     if (data) {
       reset({
         name: data.name || '',
-        emoji: data.meta.emoji || '',
+        emoji: data.meta?.emoji || '',
+        content_type: type === 1 ? '' : data.meta?.content_type || 'html',
       });
+    } else {
+      setValue('content_type', type === 1 ? '' : 'html');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [data, type, open]);
 
   return (
     <Modal
@@ -124,6 +162,29 @@ const DocAddByCustomText = ({
         name='emoji'
         render={({ field }) => <Emoji {...field} type={type} />}
       />
+      {type === 2 && !data && (
+        <>
+          <Box sx={{ fontSize: 14, lineHeight: '36px', mt: 1 }}>文档类型</Box>
+          <Controller
+            control={control}
+            name='content_type'
+            render={({ field }) => (
+              <RadioGroup {...field} row>
+                <FormControlLabel
+                  value='html'
+                  control={<Radio size='small' />}
+                  label='富文本'
+                />
+                <FormControlLabel
+                  value='md'
+                  control={<Radio size='small' />}
+                  label='Markdown'
+                />
+              </RadioGroup>
+            )}
+          />
+        </>
+      )}
     </Modal>
   );
 };

@@ -51,7 +51,7 @@ const dark = {
   text: {
     primary: '#fff',
     secondary: 'rgba(255,255,255,0.7)',
-    auxiliary: 'rgba(255,255,255,0.5)',
+    tertiary: 'rgba(255,255,255,0.5)',
     disabled: 'rgba(255,255,255,0.26)',
     slave: 'rgba(255,255,255,0.05)',
     inverseAuxiliary: 'rgba(0,0,0,0.5)',
@@ -59,9 +59,9 @@ const dark = {
   },
   divider: '#ededed',
   background: {
-    paper0: '#060608',
     paper: '#18181b',
-    paper2: '#27272a',
+    paper2: '#060608',
+    paper3: '#27272a',
     default: 'rgba(255,255,255,0.6)',
     disabled: 'rgba(15,15,15,0.8)',
     chip: 'rgba(145,147,171,0.16)',

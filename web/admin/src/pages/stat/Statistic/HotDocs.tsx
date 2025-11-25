@@ -1,22 +1,24 @@
-import { HotDocsItem, statHotPages } from '@/api';
+import { getApiV1StatHotPages } from '@/request/Stat';
 import Nodata from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import { useAppSelector } from '@/store';
 import { Box, Stack } from '@mui/material';
-import { Ellipsis } from 'ct-mui';
+import { Ellipsis } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { ActiveTab, TimeList } from '.';
+import { DomainHotPage } from '@/request/types';
 
 const HotDocs = ({ tab }: { tab: ActiveTab }) => {
   const { kb_id = '' } = useAppSelector(state => state.config);
-  const [list, setList] = useState<HotDocsItem[]>([]);
+  const [list, setList] = useState<DomainHotPage[]>([]);
   const [max, setMax] = useState(0);
 
   useEffect(() => {
-    statHotPages({ kb_id }).then(res => {
-      const data = res.sort((a, b) => b.count - a.count).slice(0, 7);
+    if (!kb_id) return;
+    getApiV1StatHotPages({ kb_id, day: tab }).then(res => {
+      const data = res.sort((a, b) => b.count! - a.count!).slice(0, 7);
       setList(data);
-      setMax(Math.max(...data.map(item => item.count)));
+      setMax(Math.max(...data.map(item => item.count!)));
     });
   }, [tab, kb_id]);
 
@@ -35,14 +37,14 @@ const HotDocs = ({ tab }: { tab: ActiveTab }) => {
         sx={{ mb: 2 }}
       >
         <Box sx={{ fontSize: 16, fontWeight: 'bold' }}>热门文档</Box>
-        <Box sx={{ fontSize: 12, color: 'text.auxiliary' }}>
+        <Box sx={{ fontSize: 12, color: 'text.tertiary' }}>
           {TimeList.find(it => it.value === tab)?.label}
         </Box>
       </Stack>
       {list.length > 0 ? (
         <Stack gap={2}>
-          {list.map(it => (
-            <Box key={it.node_id} sx={{ fontSize: 12 }}>
+          {list.map((it, index) => (
+            <Box key={index} sx={{ fontSize: 12 }}>
               <Stack
                 direction={'row'}
                 alignItems={'center'}
@@ -52,14 +54,14 @@ const HotDocs = ({ tab }: { tab: ActiveTab }) => {
                 <Ellipsis sx={{ flex: 1, width: 0 }}>
                   {it.node_name || '-'}
                 </Ellipsis>
-                <Box sx={{ fontFamily: 'Gbold' }}>{it.count}</Box>
+                <Box sx={{ fontWeight: 700 }}>{it.count}</Box>
               </Stack>
               <Box
                 sx={{
                   height: 6,
                   mt: '6px',
                   borderRadius: '3px',
-                  bgcolor: 'background.paper2',
+                  bgcolor: 'background.paper3',
                 }}
               >
                 <Box
@@ -67,7 +69,7 @@ const HotDocs = ({ tab }: { tab: ActiveTab }) => {
                     height: 6,
                     background:
                       'linear-gradient( 90deg, #3248F2 0%, #9E68FC 100%)',
-                    width: `${(it.count / max) * 100}%`,
+                    width: `${(it.count! / max) * 100}%`,
                     borderRadius: '3px',
                   }}
                 ></Box>

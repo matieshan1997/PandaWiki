@@ -9,91 +9,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 
-	"github.com/chaitin/panda-wiki/log"
-
+	"github.com/google/uuid"
 	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
+
+	"github.com/chaitin/panda-wiki/domain"
+	"github.com/chaitin/panda-wiki/log"
+	"github.com/chaitin/panda-wiki/pkg/bot"
 )
 
-type WechatConfig struct {
-	Ctx            context.Context
-	CorpID         string
-	Token          string
-	EncodingAESKey string
-	kbID           string
-	Secret         string
-	AccessToken    string
-	TokenExpire    time.Time
-	AgentID        string
-	logger         *log.Logger
-}
-
-type ReceivedMessage struct {
-	ToUserName   string `xml:"ToUserName"`
-	FromUserName string `xml:"FromUserName"`
-	CreateTime   int64  `xml:"CreateTime"`
-	MsgType      string `xml:"MsgType"`
-	Content      string `xml:"Content"`
-	MsgID        string `xml:"MsgId"`
-}
-
-type ResponseMessage struct {
-	XMLName      xml.Name `xml:"xml"`
-	ToUserName   CDATA    `xml:"ToUserName"`
-	FromUserName CDATA    `xml:"FromUserName"`
-	CreateTime   int64    `xml:"CreateTime"`
-	MsgType      CDATA    `xml:"MsgType"`
-	Content      CDATA    `xml:"Content"`
-}
-
-type CDATA struct {
-	Value string `xml:",cdata"`
-}
-
-type BackendRequest struct {
-	Question string `json:"question"`
-	UserID   string `json:"user_id"`
-}
-
-type BackendResponse struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    struct {
-		TextResponse string `json:"test_response"`
-	} `json:"data"`
-}
-
-// UserInfo 用于存储获取到的用户信息
-type UserInfo struct {
-	Errcode    int    `json:"errcode"`
-	Errmsg     string `json:"errmsg"`
-	UserID     string `json:"userid"`
-	Name       string `json:"name"`
-	Department []int  `json:"department"`
-	Mobile     string `json:"mobile"`
-	Email      string `json:"email"`
-	Status     int    `json:"status"`
-}
-
-// 获取token的回应的消息
-type AccessToken struct {
-	Errcode     int    `json:"errcode"`
-	Errmsg      string `json:"errmsg"`
-	AccessToken string `json:"access_token"`
-	ExpiresIn   int    `json:"expires_in"`
-}
-
-type TokenCache struct {
-	AccessToken string
-	TokenExpire time.Time
-	Mutex       sync.Mutex
-}
-
-var tokenCache *TokenCache = &TokenCache{}
-
-func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, againtid string, logger *log.Logger) (*WechatConfig, error) {
+func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, agentID string, logger *log.Logger) (*WechatConfig, error) {
 	return &WechatConfig{
 		Ctx:            ctx,
 		CorpID:         CorpID,
@@ -101,7 +27,7 @@ func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, 
 		EncodingAESKey: EncodingAESKey,
 		kbID:           kbid,
 		Secret:         secret,
-		AgentID:        againtid,
+		AgentID:        agentID,
 		logger:         logger,
 	}, nil
 }
@@ -123,13 +49,13 @@ func (cfg *WechatConfig) VerifyUrlWechatAPP(signature, timestamp, nonce, echostr
 	return decryptEchoStr, nil
 }
 
-func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA func(ctx context.Context, msg string) (chan string, error)) error {
+func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA bot.GetQAFun, userinfo *UserInfo) error {
 
 	token, err := cfg.GetAccessToken()
 	if err != nil {
 		return err
 	}
-	err = cfg.Processmessage(msg, getQA, token)
+	err = cfg.ProcessMessage(msg, getQA, token, userinfo)
 	if err != nil {
 		cfg.logger.Error("send to ai failed!", log.Error(err))
 		return err
@@ -138,19 +64,45 @@ func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA func(ctx context.Cont
 }
 
 // forwardToBackend
-func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx context.Context, msg string) (chan string, error), token string) error {
+func (cfg *WechatConfig) ProcessMessage(msg ReceivedMessage, GetQA bot.GetQAFun, token string, userinfo *UserInfo) error {
+	// 1. get ai channel
+	id, err := uuid.NewV7()
+	if err != nil {
+		cfg.logger.Error("failed to generate conversation uuid", log.Error(err))
+		id = uuid.New()
+	}
+	conversationID := id.String()
 
-	wccontent, err := GetQA(cfg.Ctx, msg.Content)
+	wccontent, err := GetQA(cfg.Ctx, msg.Content, domain.ConversationInfo{
+		UserInfo: domain.UserInfo{
+			UserID:   userinfo.UserID,
+			NickName: userinfo.Name,
+			From:     domain.MessageFromPrivate,
+		}}, conversationID)
 
 	if err != nil {
 		return err
 	}
 
-	var response string
-	for v := range wccontent {
-		response += v
+	//2. go send to ai and store in map--> get conversation-id
+	if _, ok := domain.ConversationManager.Load(conversationID); !ok {
+		state := &domain.ConversationState{
+			Question:         msg.Content,
+			NotificationChan: make(chan string), // notification channel
+			IsVisited:        false,
+		}
+		domain.ConversationManager.Store(conversationID, state)
+
+		go cfg.SendQuestionToAI(conversationID, wccontent)
 	}
-	Errcode, Errmsg, err := cfg.SendResponseToUser(response, msg.FromUserName, token)
+
+	baseUrl, err := cfg.WeRepo.GetWechatBaseURL(cfg.Ctx, cfg.kbID)
+	if err != nil {
+		return err
+	}
+
+	//3.send url to user
+	Errcode, Errmsg, err := cfg.SendURLToUser(msg.FromUserName, msg.Content, token, conversationID, baseUrl)
 	if err != nil {
 		return err
 	}
@@ -158,6 +110,44 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 		return fmt.Errorf("wechat Api failed : %s (code: %d)", Errmsg, Errcode)
 	}
 	return nil
+}
+
+// SendResponseToUser
+func (cfg *WechatConfig) SendURLToUser(touser, question, token, conversationID, baseUrl string) (int, string, error) {
+	msgData := map[string]interface{}{
+		"touser":  touser,
+		"msgtype": "textcard",
+		"agentid": cfg.AgentID,
+		"textcard": map[string]interface{}{
+			"title":       question,
+			"description": "<div class = \"highlight\">本回答由 PandaWiki 基于 AI 生成，仅供参考。</div>",
+			"url":         fmt.Sprintf("%s/h5-chat?id=%s", baseUrl, conversationID),
+		},
+	}
+
+	jsonData, err := json.Marshal(msgData)
+	if err != nil {
+		return 0, "", err
+	}
+
+	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s", token)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+
+	if err != nil {
+		return 0, "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var result struct {
+		Errcode int    `json:"errcode"`
+		Errmsg  string `json:"errmsg"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return 0, "", err
+	}
+	return result.Errcode, result.Errmsg, nil
 }
 
 // SendResponseToUser
@@ -228,6 +218,19 @@ func (cfg *WechatConfig) SendResponse(msg ReceivedMessage, content string) ([]by
 }
 
 func (cfg *WechatConfig) GetAccessToken() (string, error) {
+	// Generate cache key based on app credentials
+	cacheKey := getTokenCacheKey(cfg.kbID, cfg.AgentID)
+
+	// Get or create token cache for this app
+	tokenCacheMapMutex.Lock()
+	tokenCache, exists := tokenCacheMap[cacheKey]
+	if !exists {
+		tokenCache = &TokenCache{}
+		tokenCacheMap[cacheKey] = tokenCache
+	}
+	tokenCacheMapMutex.Unlock()
+
+	// Lock the specific token cache for this app
 	tokenCache.Mutex.Lock()
 	defer tokenCache.Mutex.Unlock()
 
@@ -306,4 +309,24 @@ func (cfg *WechatConfig) UnmarshalMsg(decryptMsg []byte) (*ReceivedMessage, erro
 	var msg ReceivedMessage
 	err := xml.Unmarshal([]byte(decryptMsg), &msg)
 	return &msg, err
+}
+
+// answer set into conversation state buffer
+func (cfg *WechatConfig) SendQuestionToAI(conversationID string, wccontent chan string) {
+	// send message
+	val, _ := domain.ConversationManager.Load(conversationID)
+	state := val.(*domain.ConversationState)
+	for content := range wccontent {
+		state.Mutex.Lock()
+		if state.IsVisited {
+			state.NotificationChan <- content // notify has new data
+		}
+		state.Buffer.WriteString(content)
+		state.Mutex.Unlock()
+	}
+	// end sent notification
+	defer func() {
+		close(state.NotificationChan)
+		domain.ConversationManager.Delete(conversationID)
+	}()
 }

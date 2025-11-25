@@ -19,6 +19,7 @@ import {
   DomainGetKBReleaseListResp,
   DomainKnowledgeBaseDetail,
   DomainKnowledgeBaseListItem,
+  DomainPWResponse,
   DomainResponse,
   DomainUpdateKnowledgeBaseReq,
   GetApiV1KnowledgeBaseDetailParams,
@@ -60,7 +61,7 @@ export const postApiV1KnowledgeBase = (
  * @summary GetKnowledgeBaseDetail
  * @request GET:/api/v1/knowledge_base/detail
  * @secure
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainKnowledgeBaseDetail,
 
 })` OK
@@ -71,7 +72,7 @@ export const getApiV1KnowledgeBaseDetail = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainKnowledgeBaseDetail;
     }
   >({
@@ -137,7 +138,7 @@ export const deleteApiV1KnowledgeBaseDetail = (
  * @name GetApiV1KnowledgeBaseList
  * @summary GetKnowledgeBaseList
  * @request GET:/api/v1/knowledge_base/list
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: (DomainKnowledgeBaseListItem)[],
 
 })` OK
@@ -145,7 +146,7 @@ export const deleteApiV1KnowledgeBaseDetail = (
 
 export const getApiV1KnowledgeBaseList = (params: RequestParams = {}) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainKnowledgeBaseListItem[];
     }
   >({
@@ -186,7 +187,7 @@ export const postApiV1KnowledgeBaseRelease = (
  * @name GetApiV1KnowledgeBaseReleaseList
  * @summary GetKBReleaseList
  * @request GET:/api/v1/knowledge_base/release/list
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainGetKBReleaseListResp,
 
 })` OK
@@ -197,7 +198,7 @@ export const getApiV1KnowledgeBaseReleaseList = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainGetKBReleaseListResp;
     }
   >({
@@ -267,7 +268,7 @@ export const postApiV1KnowledgeBaseUserInvite = (
  * @summary KBUserList
  * @request GET:/api/v1/knowledge_base/user/list
  * @secure
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: (V1KBUserListItemResp)[],
 
 })` OK
@@ -278,7 +279,7 @@ export const getApiV1KnowledgeBaseUserList = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: V1KBUserListItemResp[];
     }
   >({

@@ -1,8 +1,6 @@
 package consts
 
 import (
-	"math"
-
 	"github.com/labstack/echo/v4"
 )
 
@@ -13,25 +11,13 @@ const ContextKeyEdition contextKey = "edition"
 type LicenseEdition int32
 
 const (
-	LicenseEditionFree        LicenseEdition = 0
-	LicenseEditionContributor LicenseEdition = 1
-	LicenseEditionEnterprise  LicenseEdition = 2
+	LicenseEditionFree       LicenseEdition = 0 // 开源版
+	LicenseEditionProfession LicenseEdition = 1 // 专业版
+	LicenseEditionEnterprise LicenseEdition = 2 // 企业版
+	LicenseEditionBusiness   LicenseEdition = 3 // 商业版
 )
 
 func GetLicenseEdition(c echo.Context) LicenseEdition {
 	edition, _ := c.Get("edition").(LicenseEdition)
 	return edition
-}
-
-func (e LicenseEdition) GetMaxAuth() int {
-	switch e {
-	case LicenseEditionFree:
-		return 0
-	case LicenseEditionContributor:
-		return 10
-	case LicenseEditionEnterprise:
-		return math.MaxInt
-	default:
-		return 0
-	}
 }

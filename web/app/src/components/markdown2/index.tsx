@@ -1,8 +1,7 @@
 'use client';
 
-import { useStore } from '@/provider';
 import { copyText } from '@/utils';
-import { Box, useTheme } from '@mui/material';
+import { Box, Dialog, useTheme } from '@mui/material';
 import mk from '@vscode/markdown-it-katex';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/an-old-hope.css';
@@ -15,7 +14,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { createImageRenderer } from './imageRenderer';
+import { useSmartScroll } from '@/hooks';
+import { clearImageBlobCache, createImageRenderer } from './imageRenderer';
 import { incrementalRender } from './incrementalRenderer';
 import { createMermaidRenderer } from './mermaidRenderer';
 import {
@@ -27,6 +27,7 @@ import {
 interface MarkDown2Props {
   loading?: boolean;
   content: string;
+  autoScroll?: boolean;
 }
 
 // ==================== 工具函数 ====================
@@ -35,7 +36,7 @@ interface MarkDown2Props {
  */
 const createMarkdownIt = (): MarkdownIt => {
   const md = new MarkdownIt({
-    html: false,
+    html: true,
     breaks: true,
     linkify: true,
     typographer: true,
@@ -65,39 +66,37 @@ const createMarkdownIt = (): MarkdownIt => {
 };
 
 // ==================== 主组件 ====================
-const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
+const MarkDown2: React.FC<MarkDown2Props> = ({
+  loading = false,
+  content,
+  autoScroll = true,
+}) => {
   const theme = useTheme();
-  const { themeMode = 'light' } = useStore();
+  const themeMode = theme.palette.mode;
 
   // 状态管理
   const [showThink, setShowThink] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImgBlobUrl, setPreviewImgBlobUrl] = useState('');
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const lastContentRef = useRef<string>('');
   const mdRef = useRef<MarkdownIt | null>(null);
   const mermaidSuccessIdRef = useRef<Map<number, string>>(new Map());
-  const imageRenderCacheRef = useRef<Map<number, string>>(new Map()); // 图片渲染缓存
+  const imageRenderCacheRef = useRef<Map<number, string>>(new Map()); // 图片渲染缓存（HTML）
+  const imageBlobCacheRef = useRef<Map<string, string>>(new Map()); // 图片 blob URL 缓存
 
-  // ==================== 事件处理函数 ====================
-  const handleCodeClick = useCallback((code: string) => {
-    copyText(code);
-  }, []);
+  // 使用智能滚动 hook
+  const { scrollToBottom } = useSmartScroll({
+    container: '.conversation-container',
+    threshold: 50, // 距离底部 50px 内认为是在底部附近
+    behavior: 'smooth',
+    enabled: autoScroll,
+  });
 
   const handleThinkToggle = useCallback(() => {
     setShowThink(prev => !prev);
-  }, []);
-
-  const onScrollBottom = useCallback(() => {
-    setTimeout(() => {
-      const container = document.querySelector('.conversation-container');
-      if (container) {
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: 'smooth',
-        });
-      }
-    });
   }, []);
 
   // ==================== 渲染器函数 ====================
@@ -106,6 +105,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
    */
   const handleImageLoad = useCallback((index: number, html: string) => {
     imageRenderCacheRef.current.set(index, html);
+    // 图片加载完成后，useSmartScroll 的 ResizeObserver 会自动触发滚动
   }, []);
 
   /**
@@ -113,6 +113,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
    */
   const handleImageError = useCallback((index: number, html: string) => {
     imageRenderCacheRef.current.set(index, html);
+    // 图片加载失败后，useSmartScroll 的 ResizeObserver 会自动触发滚动
   }, []);
 
   // 创建图片渲染器
@@ -122,6 +123,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
         onImageLoad: handleImageLoad,
         onImageError: handleImageError,
         imageRenderCache: imageRenderCacheRef.current,
+        imageBlobCache: imageBlobCacheRef.current,
       }),
     [handleImageLoad, handleImageError],
   );
@@ -148,6 +150,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
       const originalFenceRender = md.renderer.rules.fence;
       // 自定义图片渲染
       let imageCount = 0;
+      let htmlImageCount = 0; // HTML 标签图片计数
       let mermaidCount = 0;
       md.renderer.rules.image = (tokens, idx) => {
         imageCount++;
@@ -174,15 +177,6 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
           ? defaultRender(tokens, idx, options, env, renderer)
           : `<pre><code>${code}</code></pre>`;
 
-        // 添加点击复制功能
-        // result = result.replace(
-        //   /<pre[^>]*>/,
-        //   `<pre style="cursor: pointer; position: relative;" onclick="window.handleCodeCopy && window.handleCodeCopy(\`${code.replace(
-        //     /`/g,
-        //     '\\`'
-        //   )}\`)">`
-        // );
-
         return result;
       };
 
@@ -190,7 +184,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
       md.renderer.rules.code_inline = (tokens, idx) => {
         const token = tokens[idx];
         const code = token.content;
-        return `<code onclick="window.handleCodeCopy && window.handleCodeCopy('${code}')" style="cursor: pointer;">${code}</code>`;
+        return `<code  style="cursor: pointer;">${code}</code>`;
       };
 
       // 自定义标题渲染（h1 -> h2）
@@ -224,9 +218,52 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
         const originalHtmlBlock = md.renderer.rules.html_block;
         const originalHtmlInline = md.renderer.rules.html_inline;
 
+        // HTML 白名单 - 只允许这些标签通过
+        const allowedTags = ['think', 'error'];
+
         // 用于跟踪thinking状态
         let isInThinking = false;
         let thinkingContent = '';
+
+        // 检查是否是允许的标签
+        const isAllowedTag = (content: string): boolean => {
+          return allowedTags.some(
+            tag =>
+              content.includes(`<${tag}>`) || content.includes(`</${tag}>`),
+          );
+        };
+
+        // 解析 HTML img 标签并提取属性
+        const parseImgTag = (
+          html: string,
+        ): {
+          src: string;
+          alt: string;
+          attrs: [string, string][];
+        } | null => {
+          // 匹配 <img> 标签（支持自闭合和普通标签）
+          const imgMatch = html.match(/<img\s+([^>]*?)\/?>/i);
+          if (!imgMatch) return null;
+
+          const attrsString = imgMatch[1];
+          const attrs: [string, string][] = [];
+          let src = '';
+          let alt = '';
+
+          // 解析属性：匹配 name="value" 或 name='value' 或 name=value
+          const attrRegex =
+            /(\w+)(?:=["']([^"']*)["']|=(?:["'])?([^\s>]+)(?:["'])?)?/g;
+          let attrMatch;
+          while ((attrMatch = attrRegex.exec(attrsString)) !== null) {
+            const name = attrMatch[1].toLowerCase();
+            const value = attrMatch[2] || attrMatch[3] || '';
+            attrs.push([name, value]);
+            if (name === 'src') src = value;
+            if (name === 'alt') alt = value;
+          }
+
+          return { src, alt, attrs };
+        };
 
         md.renderer.rules.html_block = (
           tokens,
@@ -266,6 +303,26 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
           if (content.includes('<error>')) return '<span class="chat-error">';
           if (content.includes('</error>')) return '</span>';
 
+          // 处理 img 标签
+          if (content.includes('<img')) {
+            const imgData = parseImgTag(content);
+            if (imgData && imgData.src) {
+              const imageIndex = imageCount + htmlImageCount;
+              htmlImageCount++;
+              return renderImage(
+                imgData.src,
+                imgData.alt,
+                imgData.attrs,
+                imageIndex,
+              );
+            }
+          }
+
+          // 🔒 安全检查：不在白名单的标签，转义输出
+          if (!isAllowedTag(content)) {
+            return md.utils.escapeHtml(content);
+          }
+
           return originalHtmlBlock
             ? originalHtmlBlock(tokens, idx, options, env, renderer)
             : content;
@@ -284,6 +341,26 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
           if (content.includes('<error>')) return '<span class="chat-error">';
           if (content.includes('</error>')) return '</span>';
 
+          // 处理 img 标签
+          if (content.includes('<img')) {
+            const imgData = parseImgTag(content);
+            if (imgData && imgData.src) {
+              const imageIndex = imageCount + htmlImageCount;
+              htmlImageCount++;
+              return renderImage(
+                imgData.src,
+                imgData.alt,
+                imgData.attrs,
+                imageIndex,
+              );
+            }
+          }
+
+          // 🔒 安全检查：不在白名单的标签，转义输出
+          if (!isAllowedTag(content)) {
+            return md.utils.escapeHtml(content);
+          }
+
           return originalHtmlInline
             ? originalHtmlInline(tokens, idx, options, env, renderer)
             : content;
@@ -292,7 +369,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
 
       setupCustomHtmlHandlers();
     },
-    [renderImage, renderMermaid, renderThinking, showThink, theme],
+    [renderImage, renderMermaid, renderThinking, theme],
   );
 
   // ==================== Effects ====================
@@ -302,15 +379,6 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
       mdRef.current = createMarkdownIt();
     }
   }, []);
-
-  // 设置全局函数
-  useEffect(() => {
-    (window as any).handleCodeCopy = handleCodeClick;
-
-    return () => {
-      delete (window as any).handleCodeCopy;
-    };
-  }, [handleCodeClick]);
 
   // 主要的内容渲染 Effect
   useEffect(() => {
@@ -330,21 +398,70 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
 
       incrementalRender(containerRef.current, newHtml, lastContentRef.current);
       lastContentRef.current = processedContent;
-      onScrollBottom();
+      scrollToBottom();
     } catch (error) {
       console.error('Markdown 渲染错误:', error);
       if (containerRef.current) {
         containerRef.current.innerHTML = '<div>Markdown 渲染错误</div>';
       }
     }
-  }, [content, customizeRenderer, onScrollBottom]);
+  }, [content, customizeRenderer, scrollToBottom]);
+
+  // 添加代码块点击复制和图片点击预览功能（事件代理）
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+
+      // 检查是否点击了图片
+      const imgElement = target.closest(
+        'img.markdown-image',
+      ) as HTMLImageElement;
+      if (imgElement) {
+        const originalSrc = imgElement.getAttribute('data-original-src');
+        if (originalSrc) {
+          // 尝试获取缓存的 blob URL，如果不存在则使用原始 src
+          const blobUrl = imageBlobCacheRef.current.get(originalSrc);
+          setPreviewImgBlobUrl(blobUrl || originalSrc);
+          setPreviewOpen(true);
+        }
+        return;
+      }
+
+      // 检查是否点击了代码块
+      const preElement = target.closest('pre.hljs');
+      if (preElement) {
+        const codeElement = preElement.querySelector('code');
+        if (codeElement) {
+          const code = codeElement.textContent || '';
+          copyText(code.replace(/\n$/, ''));
+        }
+        return;
+      }
+
+      // 检查是否点击了行内代码
+      if (target.tagName === 'CODE' && !target.closest('pre')) {
+        const code = target.textContent || '';
+        copyText(code);
+      }
+    };
+
+    container.addEventListener('click', handleClick);
+
+    return () => {
+      clearImageBlobCache(imageBlobCacheRef.current);
+      container.removeEventListener('click', handleClick);
+    };
+  }, []);
 
   // ==================== 组件样式 ====================
   const componentStyles = {
     fontSize: '14px',
     background: 'transparent',
     '--primary-color': theme.palette.primary.main,
-    '--background-paper': theme.palette.background.paper2,
+    '--background-paper': theme.palette.background.paper3,
 
     // 省略号样式
     '.three-ellipsis': {
@@ -359,6 +476,9 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
     '.image-container': {
       position: 'relative',
       display: 'inline-block',
+    },
+    '.markdown-image': {
+      cursor: 'pointer',
     },
     '.image-error': {
       display: 'flex',
@@ -396,20 +516,43 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
     // 暗色主题下的 LaTeX 样式
     ...(themeMode === 'dark' && {
       '.katex, .katex *, .katex .mord, .katex .mrel, .katex .mop, .katex .mbin, .katex .mpunct, .katex .mopen, .katex .mclose, .katex-display':
-      {
-        color: `${theme.palette.text.primary} !important`,
-      },
+        {
+          color: `${theme.palette.text.primary} !important`,
+        },
     }),
   };
 
   // ==================== 渲染 ====================
   return (
-    <Box
-      className={`markdown-body ${themeMode === 'dark' ? 'md-dark' : ''}`}
-      sx={componentStyles}
-    >
-      <div ref={containerRef} />
-    </Box>
+    <>
+      {/* 图片预览弹窗 */}
+      <Dialog
+        sx={{
+          '.MuiDialog-paper': {
+            maxWidth: '95vw',
+            maxHeight: '95vh',
+          },
+        }}
+        open={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewImgBlobUrl('');
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={previewImgBlobUrl}
+          alt='preview'
+          style={{ width: '100%', height: '100%' }}
+        />
+      </Dialog>
+      <Box
+        className={`markdown-body ${themeMode === 'dark' ? 'md-dark' : ''}`}
+        sx={componentStyles}
+      >
+        <div ref={containerRef} />
+      </Box>
+    </>
   );
 };
 

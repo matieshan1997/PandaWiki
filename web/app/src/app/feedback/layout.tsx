@@ -1,6 +1,6 @@
 import StoreProvider from '@/provider';
 import { lightTheme } from '@/theme';
-import { ThemeProvider } from 'ct-mui';
+import { ThemeProvider } from '@ctzhian/ui';
 
 import React from 'react';
 

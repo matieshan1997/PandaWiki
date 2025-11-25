@@ -1,6 +1,5 @@
 import { addOpacityToColor, copyText } from '@/utils';
 import { Box, IconButton, useTheme } from '@mui/material';
-import { Icon } from 'ct-mui';
 import 'katex/dist/katex.min.css';
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -12,6 +11,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import { IconXiajiantou } from '@panda-wiki/icons';
 
 interface MarkDownProps {
   loading?: boolean;
@@ -44,10 +44,10 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
           alignItems: 'flex-end',
           gap: '16px',
           fontSize: '12px',
-          color: 'text.auxiliary',
+          color: 'text.tertiary',
           marginBottom: '40px',
           lineHeight: '20px',
-          backgroundColor: 'background.paper2',
+          backgroundColor: 'background.paper3',
           padding: '16px',
           cursor: 'pointer',
           borderRadius: '10px',
@@ -117,8 +117,7 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
                       },
                     }}
                   >
-                    <Icon
-                      type='icon-xiajiantou'
+                    <IconXiajiantou
                       sx={{
                         fontSize: 18,
                         flexShrink: 0,

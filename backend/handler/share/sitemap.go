@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/usecase"
@@ -36,7 +37,7 @@ func (h *ShareSitemapHandler) GetSitemap(c echo.Context) error {
 	if kbID == "" {
 		return h.NewResponseWithError(c, "kb_id is required", nil)
 	}
-	appInfo, err := h.appUsecase.GetWebAppInfo(c.Request().Context(), kbID)
+	appInfo, err := h.appUsecase.ShareGetWebAppInfo(c.Request().Context(), kbID, domain.GetAuthID(c))
 	if err != nil {
 		return h.NewResponseWithError(c, "web app not found", err)
 	}

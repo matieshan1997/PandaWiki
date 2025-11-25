@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
 	v1 "github.com/chaitin/panda-wiki/api/user/v1"
+	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/store/pg"
@@ -51,13 +53,26 @@ func (r *UserRepository) UpsertDefaultUser(ctx context.Context, user *domain.Use
 	})
 }
 
-func (r *UserRepository) CreateUser(ctx context.Context, user *domain.User) error {
+func (r *UserRepository) CreateUser(ctx context.Context, user *domain.User, edition consts.LicenseEdition) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 	user.Password = string(hashedPassword)
-	return r.db.WithContext(ctx).Create(user).Error
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(&domain.User{}).Count(&count).Error; err != nil {
+			return err
+		}
+		if count >= domain.GetBaseEditionLimitation(ctx).MaxAdmin {
+			return fmt.Errorf("exceed max admin limit, current count: %d, max limit: %d", count, domain.GetBaseEditionLimitation(ctx).MaxAdmin)
+		}
+
+		if err := tx.Create(user).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (r *UserRepository) VerifyUser(ctx context.Context, account string, password string) (*domain.User, error) {
@@ -93,6 +108,22 @@ func (r *UserRepository) ListUsers(ctx context.Context) ([]v1.UserListItemResp, 
 		return nil, err
 	}
 	return users, nil
+}
+
+func (r *UserRepository) GetUsersAccountMap(ctx context.Context) (map[string]string, error) {
+	var users []v1.UserListItemResp
+	err := r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	m := lo.SliceToMap(users, func(user v1.UserListItemResp) (string, string) {
+		return user.ID, user.Account
+	})
+
+	return m, nil
 }
 
 func (r *UserRepository) UpdateUserPassword(ctx context.Context, userID string, newPassword string) error {

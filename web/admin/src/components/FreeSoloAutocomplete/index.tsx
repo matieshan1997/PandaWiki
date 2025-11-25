@@ -47,7 +47,7 @@ export function FreeSoloAutocomplete<T>({
       slotProps={{
         listbox: {
           sx: {
-            bgcolor: 'background.paper2',
+            bgcolor: 'background.paper3',
           },
         },
       }}
@@ -64,7 +64,7 @@ export function FreeSoloAutocomplete<T>({
           placeholder={placeholder}
         />
       )}
-      renderTags={(value, getTagProps) => {
+      renderValue={(value, getTagProps) => {
         return value.map((option, index: number) => {
           return (
             <Chip

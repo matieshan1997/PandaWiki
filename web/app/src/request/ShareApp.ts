@@ -11,7 +11,7 @@
  */
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
-import { DomainResponse } from "./types";
+import { DomainAppInfoResp, DomainResponse } from "./types";
 
 /**
  * @description GetAppInfo
@@ -20,11 +20,18 @@ import { DomainResponse } from "./types";
  * @name GetShareV1AppWebInfo
  * @summary GetAppInfo
  * @request GET:/share/v1/app/web/info
- * @response `200` `DomainResponse` OK
+ * @response `200` `(DomainResponse & {
+    data?: DomainAppInfoResp,
+
+})` OK
  */
 
 export const getShareV1AppWebInfo = (params: RequestParams = {}) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: DomainAppInfoResp;
+    }
+  >({
     path: `/share/v1/app/web/info`,
     method: "GET",
     type: ContentType.Json,

@@ -1,409 +1,224 @@
 'use client';
-
-import { ChunkResultItem, ConversationItem } from '@/assets/type';
-import { IconFile, IconFolder, IconLogo } from '@/components/icons';
+import { WidgetInfo } from '@/assets/type';
 import { useStore } from '@/provider';
-import SSEClient from '@/utils/fetch';
-import { Box, Stack, useMediaQuery } from '@mui/material';
-import { Ellipsis, message } from 'ct-mui';
-import dayjs from 'dayjs';
-import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnswerStatus } from '../chat/constant';
-import ChatInput from './ChatInput';
-import ChatWindow from './ChatWindow';
+import {
+  alpha,
+  Box,
+  Button,
+  lighten,
+  Stack,
+  styled,
+  Tab,
+  Tabs,
+  Typography,
+} from '@mui/material';
+import { IconJinsousuo, IconZhinengwenda } from '@panda-wiki/icons';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import AiQaContent from './AiQaContent';
+import SearchDocContent from './SearchDocContent';
+
+const StyledTabs = styled(Tabs)(({ theme }) => ({
+  minHeight: 'auto',
+  position: 'relative',
+  borderRadius: '10px',
+  padding: theme.spacing(0.5),
+  border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
+  '& .MuiTabs-indicator': {
+    height: '100%',
+    borderRadius: '8px',
+    backgroundColor: theme.palette.primary.main,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    zIndex: 0,
+  },
+  '& .MuiTabs-flexContainer': {
+    gap: theme.spacing(0.5),
+    position: 'relative',
+    zIndex: 1,
+  },
+}));
+
+// 样式化的 Tab 组件 - 白色背景，圆角，深灰色文字
+const StyledTab = styled(Tab)(({ theme }) => ({
+  minHeight: 'auto',
+  padding: theme.spacing(0.75, 2),
+  borderRadius: '6px',
+  backgroundColor: 'transparent',
+  fontSize: 12,
+  fontWeight: 400,
+  textTransform: 'none',
+  transition: 'color 0.3s ease-in-out',
+  position: 'relative',
+  zIndex: 1,
+  lineHeight: 1,
+  '&:hover': {
+    color: theme.palette.text.primary,
+  },
+  '&.Mui-selected': {
+    color: theme.palette.primary.contrastText,
+    fontWeight: 500,
+  },
+}));
 
 const Widget = () => {
-  const isMobile = useMediaQuery(theme => theme.breakpoints.down('sm'));
-  const { widget, themeMode } = useStore();
+  const { widget, mobile } = useStore();
 
-  const chatContainerRef = useRef<HTMLDivElement | null>(null);
-  const sseClientRef = useRef<SSEClient<{
-    type: string;
-    content: string;
-    chunk_result: ChunkResultItem[];
-  }> | null>(null);
+  const defaultSearchMode = useMemo(() => {
+    return widget?.settings?.widget_bot_settings?.search_mode || 'all';
+  }, [widget]);
 
-  const messageIdRef = useRef<string>('');
-  const [conversation, setConversation] = useState<ConversationItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [thinking, setThinking] = useState<keyof typeof AnswerStatus>(4);
-  const [nonce, setNonce] = useState('');
-  const [conversationId, setConversationId] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [searchMode, setSearchMode] = useState<
+    WidgetInfo['settings']['widget_bot_settings']['search_mode']
+  >(defaultSearchMode !== 'doc' ? 'qa' : 'doc');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const aiQaInputRef = useRef<HTMLInputElement>(null);
 
-  const chatAnswer = async (q: string) => {
-    setLoading(true);
-    setThinking(1);
-    setIsUserScrolling(false);
+  const placeholder = useMemo(() => {
+    return widget?.settings?.widget_bot_settings?.placeholder || '搜索...';
+  }, [widget]);
 
-    const reqData = {
-      message: q,
-      nonce: '',
-      conversation_id: '',
-      app_type: 2,
-    };
-    if (conversationId) reqData.conversation_id = conversationId;
-    if (nonce) reqData.nonce = nonce;
+  const hotSearch = useMemo(() => {
+    return widget?.settings?.widget_bot_settings?.recommend_questions || [];
+  }, [widget]);
 
-    if (sseClientRef.current) {
-      sseClientRef.current.subscribe(
-        JSON.stringify(reqData),
-        ({ type, content }) => {
-          if (type === 'conversation_id') {
-            setConversationId(prev => prev + content);
-          } else if (type === 'message_id') {
-            messageIdRef.current += content;
-          } else if (type === 'nonce') {
-            setNonce(prev => prev + content);
-          } else if (type === 'error') {
-            setLoading(false);
-            setThinking(4);
-            setAnswer(prev => {
-              if (content) {
-                return prev + `\n\n回答出现错误：<error>${content}</error>`;
-              }
-              return prev + '\n\n回答出现错误，请重试';
-            });
-            if (content) message.error(content);
-          } else if (type === 'done') {
-            setAnswer(prevAnswer => {
-              setConversation(prev => {
-                const newConversation = [...prev];
-                newConversation[newConversation.length - 1].a = prevAnswer;
-                newConversation[newConversation.length - 1].update_time =
-                  dayjs().format('YYYY-MM-DD HH:mm:ss');
-                newConversation[newConversation.length - 1].message_id =
-                  messageIdRef.current;
-                return newConversation;
-              });
-              return '';
-            });
-            setLoading(false);
-            setThinking(4);
-          } else if (type === 'data') {
-            setAnswer(prev => {
-              const newAnswer = prev + content;
-              if (newAnswer.includes('</think>')) {
-                setThinking(3);
-                return newAnswer;
-              }
-              if (newAnswer.includes('<think>')) {
-                setThinking(2);
-                return newAnswer;
-              }
-              setThinking(3);
-              return newAnswer;
-            });
-          }
-        },
-      );
-    }
-  };
-
-  const onSearch = (q: string, reset: boolean = false) => {
-    if (loading || !q.trim()) return;
-    const newConversation = reset ? [] : [...conversation];
-    newConversation.push({
-      q,
-      a: '',
-      score: 0,
-      update_time: '',
-      message_id: '',
-      source: 'chat',
-    });
-    messageIdRef.current = '';
-    setConversation(newConversation);
-    setAnswer('');
+  // modal打开时自动聚焦
+  useEffect(() => {
     setTimeout(() => {
-      chatAnswer(q);
-    }, 0);
-  };
-
-  const handleSearchAbort = () => {
-    if (loading) {
-      sseClientRef.current?.unsubscribe();
-    }
-    setLoading(false);
-    setThinking(4);
-  };
-
-  const handleScroll = useCallback(() => {
-    if (chatContainerRef?.current) {
-      const { scrollTop, scrollHeight, clientHeight } =
-        chatContainerRef.current;
-      setIsUserScrolling(scrollTop + clientHeight < scrollHeight);
-    }
-  }, [chatContainerRef]);
-
-  useEffect(() => {
-    if (!isUserScrolling && chatContainerRef?.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
-    }
-  }, [answer, isUserScrolling]);
-
-  useEffect(() => {
-    const chatContainer = chatContainerRef?.current;
-    chatContainer?.addEventListener('scroll', handleScroll);
-    return () => {
-      chatContainer?.removeEventListener('scroll', handleScroll);
-    };
-  }, [handleScroll]);
-
-  useEffect(() => {
-    sseClientRef.current = new SSEClient({
-      url: `/share/v1/chat/widget`,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      onCancel: () => {
-        setLoading(false);
-        setThinking(4);
-        setAnswer(prev => {
-          let value = '';
-          if (prev) {
-            value = prev + '\n\n<error>Request canceled</error>';
-          }
-          setConversation(prev => {
-            const newConversation = [...prev];
-            if (newConversation.length > 0) {
-              newConversation[newConversation.length - 1].a = value;
-              newConversation[newConversation.length - 1].update_time =
-                dayjs().format('YYYY-MM-DD HH:mm:ss');
-              newConversation[newConversation.length - 1].message_id =
-                messageIdRef.current;
-            }
-            return newConversation;
-          });
-          return '';
-        });
-      },
-    });
-  }, []);
+      if (searchMode === 'qa') {
+        aiQaInputRef.current?.querySelector('textarea')?.focus();
+      } else {
+        inputRef.current?.querySelector('input')?.focus();
+      }
+    }, 100);
+  }, [searchMode]);
 
   return (
-    <>
-      <Stack
-        direction={'row'}
-        alignItems={'flex-start'}
-        justifyContent={'space-between'}
-        gap={2}
-        sx={{
-          p: 3,
-          bgcolor: 'primary.main',
-          pb: '36px',
-        }}
-      >
-        <Box sx={{ flex: 1, width: 0, color: 'light.main' }}>
-          <Stack
-            direction={'row'}
-            alignItems={'center'}
-            gap={1}
-            sx={{ lineHeight: '28px', fontSize: 20 }}
-          >
-            {widget?.settings?.widget_bot_settings?.btn_logo ||
-              widget?.settings?.icon ? (
-              <img
-                src={
-                  widget?.settings?.widget_bot_settings?.btn_logo ||
-                  widget?.settings?.icon
-                }
-                height={24}
-                style={{ flexShrink: 0 }}
-              />
-            ) : (
-              <IconLogo sx={{ fontSize: 24 }} />
-            )}
-            <Ellipsis sx={{ pr: 2 }}>
-              <Box
-                component={'span'}
-                sx={{ cursor: 'pointer' }}
-                onClick={() => {
-                  handleSearchAbort();
-                  setConversation([]);
-                }}
-              >
-                {widget?.settings?.title || '在线客服'}
-              </Box>
-            </Ellipsis>
-          </Stack>
-          <Ellipsis sx={{ fontSize: 14, opacity: 0.7, mt: 0.5 }}>
-            {widget?.settings?.welcome_str || '在线客服'}
-          </Ellipsis>
-        </Box>
-      </Stack>
+    <Box
+      sx={theme => ({
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        maxWidth: '100vw',
+        height: '100vh',
+        backgroundColor: lighten(theme.palette.background.default, 0.05),
+        borderRadius: '10px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+        overflow: 'hidden',
+        outline: 'none',
+        pb: 2,
+      })}
+      onClick={e => e.stopPropagation()}
+    >
       <Box
         sx={{
-          bgcolor: themeMode === 'light' ? 'light.main' : 'dark.light',
-          p: 3,
-          mt: -2,
-          borderRadius: '12px 12px 0 0',
-          height: 'calc(100vh - 96px - 24px)',
-          overflow: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 2,
+          pt: 2,
+          pb: 2.5,
         }}
       >
-        {conversation.length === 0 ? (
-          <>
-            <Box>
-              <ChatInput
-                loading={loading}
-                thinking={thinking}
-                setThinking={setThinking}
-                onSearch={onSearch}
-                handleSearchAbort={handleSearchAbort}
-                placeholder={
-                  widget?.settings?.search_placeholder || '请输入问题'
-                }
-              />
-            </Box>
-            <Stack
-              direction='row'
-              alignItems={'center'}
-              flexWrap='wrap'
-              gap={1.5}
-              sx={{
-                mt: 2,
-              }}
-            >
-              {widget?.settings?.recommend_questions?.map(item => (
-                <Box
-                  key={item}
-                  onClick={() => onSearch(item, true)}
-                  sx={{
-                    border: '1px solid',
-                    borderRadius: '16px',
-                    fontSize: 14,
-                    color: 'text.secondary',
-                    lineHeight: '32px',
-                    height: '32px',
-                    borderColor: 'divider',
-                    px: 2,
-                    cursor: 'pointer',
-                    bgcolor:
-                      themeMode === 'dark'
-                        ? 'background.paper2'
-                        : 'background.default',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      color: 'primary.main',
-                    },
-                  }}
-                >
-                  {item}
-                </Box>
-              ))}
-            </Stack>
-            {widget?.recommend_nodes && widget.recommend_nodes.length > 0 && (
-              <Box sx={{ mt: 4.5 }}>
-                <Box
-                  sx={{
-                    color: 'text.tertiary',
-                    lineHeight: '22px',
-                    fontSize: 14,
-                    fontWeight: 'bold',
-                  }}
-                >
-                  推荐内容
-                </Box>
-                <Stack direction={'row'} flexWrap={'wrap'}>
-                  {widget.recommend_nodes.map(it => {
-                    return (
-                      <Link
-                        href={`/node/${it.id}`}
-                        target='_blank'
-                        prefetch={false}
-                        key={it.id}
-                        style={{ width: isMobile ? '100%' : '50%' }}
-                      >
-                        <Stack
-                          direction={'row'}
-                          alignItems={'center'}
-                          gap={1}
-                          key={it.id}
-                          sx={{
-                            py: 2,
-                            pr: isMobile ? 0 : 2,
-                            fontSize: 12,
-                            height: 53,
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            cursor: 'pointer',
-                            '&:hover': {
-                              color: 'primary.main',
-                            },
-                          }}
-                        >
-                          {it.emoji ? (
-                            <Box>{it.emoji}</Box>
-                          ) : it.type === 1 ? (
-                            <IconFolder />
-                          ) : (
-                            <IconFile />
-                          )}
-                          <Box>{it.name}</Box>
-                        </Stack>
-                      </Link>
-                    );
-                  })}
+        {defaultSearchMode === 'all' ? (
+          <StyledTabs
+            value={searchMode}
+            onChange={(_, value) => {
+              setSearchMode(value as 'qa' | 'doc');
+            }}
+            variant='scrollable'
+            scrollButtons={false}
+          >
+            <StyledTab
+              label={
+                <Stack direction='row' gap={0.5} alignItems='center'>
+                  <IconZhinengwenda sx={{ fontSize: 16 }} />
+                  {!mobile && <span>智能问答</span>}
                 </Stack>
-              </Box>
-            )}
-          </>
+              }
+              value='qa'
+            />
+            <StyledTab
+              label={
+                <Stack direction='row' gap={0.5} alignItems='center'>
+                  <IconJinsousuo sx={{ fontSize: 16 }} />
+                  {!mobile && <span>仅搜索文档</span>}
+                </Stack>
+              }
+              value='doc'
+            />
+          </StyledTabs>
         ) : (
-          <ChatWindow
-            conversation_id={conversationId}
-            conversation={conversation}
-            setConversation={setConversation}
-            answer={answer}
-            loading={loading}
-            thinking={thinking}
-            setThinking={setThinking}
-            onSearch={onSearch}
-            handleSearchAbort={handleSearchAbort}
-            placeholder={widget?.settings?.search_placeholder || '请输入问题'}
-          />
+          <Box></Box>
         )}
+        <Button
+          variant='outlined'
+          color='primary'
+          size='small'
+          sx={theme => ({
+            minWidth: 'auto',
+            px: 1,
+            py: '1px',
+            fontSize: 12,
+            fontWeight: 500,
+            textTransform: 'none',
+            color: 'text.secondary',
+            borderColor: alpha(theme.palette.text.primary, 0.1),
+          })}
+        >
+          Esc
+        </Button>
       </Box>
-      <Stack
-        direction={'row'}
-        alignItems={'center'}
-        gap={1}
-        justifyContent={'center'}
+      <Box
         sx={{
-          height: 24,
-          fontSize: 12,
-          bgcolor: themeMode === 'light' ? 'light.main' : 'dark.light',
-          a: {
-            color: 'primary.main',
-          },
+          px: 3,
+          flex: 1,
+          display: searchMode === 'qa' ? 'flex' : 'none',
+          flexDirection: 'column',
         }}
       >
-        本插件由
-        <Link
-          href={'https://pandawiki.docs.baizhi.cloud/'}
-          target='_blank'
-          prefetch={false}
+        <AiQaContent
+          hotSearch={hotSearch}
+          placeholder={placeholder}
+          inputRef={aiQaInputRef}
+        />
+      </Box>
+      <Box
+        sx={{
+          px: 3,
+          flex: 1,
+          display: searchMode === 'doc' ? 'flex' : 'none',
+          flexDirection: 'column',
+        }}
+      >
+        <SearchDocContent inputRef={inputRef} placeholder={placeholder} />
+      </Box>
+      {!widget?.settings?.widget_bot_settings?.copyright_hide_enabled && (
+        <Box
+          sx={{
+            px: 3,
+            pt: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <Stack
-            direction={'row'}
-            alignItems={'center'}
-            gap={0.5}
+          <Typography
+            variant='caption'
             sx={{
-              cursor: 'pointer',
-              '&:hover': {
-                color: 'primary.main',
-              },
+              color: 'text.disabled',
+              fontSize: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
             }}
           >
-            <IconLogo sx={{ fontSize: 16 }} />
-            <Box sx={{ fontWeight: 'bold' }}>PandaWiki</Box>
-          </Stack>
-        </Link>
-        提供技术支持
-      </Stack>
-    </>
+            <Box>
+              {widget?.settings?.widget_bot_settings?.copyright_info ||
+                '本网站由 PandaWiki 提供技术支持'}
+            </Box>
+          </Typography>
+        </Box>
+      )}
+    </Box>
   );
 };
 

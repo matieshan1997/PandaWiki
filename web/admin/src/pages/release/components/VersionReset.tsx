@@ -3,7 +3,7 @@ import { useAppSelector } from '@/store';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Box, Stack, useTheme } from '@mui/material';
-import { Modal } from 'ct-mui';
+import { Modal } from '@ctzhian/ui';
 
 interface VersionResetProps {
   open: boolean;
@@ -19,7 +19,7 @@ const VersionReset = ({ open, onClose, data, refresh }: VersionResetProps) => {
 
   const submit = () => {
     // updateNodeAction({ ids: data.map(item => item.id), kb_id, action: 'delete' }).then(() => {
-    //   Message.success('删除成功')
+    //   message.success('删除成功')
     //   onClose()
     //   refresh?.();
     // })
@@ -47,7 +47,7 @@ const VersionReset = ({ open, onClose, data, refresh }: VersionResetProps) => {
           maxHeight: 'calc(100vh - 250px)',
           overflowY: 'auto',
           overflowX: 'hidden',
-          bgcolor: 'background.paper2',
+          bgcolor: 'background.paper3',
         }}
       >
         <Stack
@@ -65,7 +65,7 @@ const VersionReset = ({ open, onClose, data, refresh }: VersionResetProps) => {
             <Box sx={{ fontSize: 16, fontWeight: 500 }}>
               {data.version || '-'}
             </Box>
-            <Box sx={{ fontSize: 12, color: 'text.auxiliary' }}>
+            <Box sx={{ fontSize: 12, color: 'text.tertiary' }}>
               {data.remark || '-'}
             </Box>
           </Box>

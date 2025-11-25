@@ -1,6 +1,10 @@
 package v1
 
 import (
+	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
@@ -11,6 +15,7 @@ import (
 	"github.com/chaitin/panda-wiki/middleware"
 	"github.com/chaitin/panda-wiki/store/s3"
 	"github.com/chaitin/panda-wiki/usecase"
+	"github.com/chaitin/panda-wiki/utils"
 )
 
 type FileHandler struct {
@@ -29,8 +34,9 @@ func NewFileHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, logger *l
 		config:      config,
 		fileUsecase: fileUsecase,
 	}
-	group := echo.Group("/api/v1/file", h.auth.Authorize)
-	group.POST("/upload", h.Upload)
+	group := echo.Group("/api/v1/file")
+	group.POST("/upload", h.Upload, h.auth.Authorize)
+	group.POST("/upload/anydoc", h.UploadAnydoc)
 	return h
 }
 
@@ -60,6 +66,56 @@ func (h *FileHandler) Upload(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, domain.ObjectUploadResp{
-		Key: key,
+		Key:      key,
+		Filename: file.Filename,
+	})
+}
+
+// UploadAnydoc
+//
+//	@Summary		Upload Anydoc File
+//	@Description	Upload Anydoc File
+//	@Tags			file
+//	@Accept			multipart/form-data
+//	@Param			file	formData	file	true	"File"
+//	@Param			path	formData	string	true	"File Path"
+//	@Success		200		{object}	domain.AnydocUploadResp
+//	@Router			/api/v1/file/upload/anydoc [post]
+func (h *FileHandler) UploadAnydoc(c echo.Context) error {
+	clientIP := fmt.Sprintf("%s.17", h.config.SubnetPrefix)
+	if utils.GetClientIPFromRemoteAddr(c) != clientIP {
+		return c.JSON(http.StatusUnauthorized, domain.AnydocUploadResp{
+			Code: 1,
+			Err:  "invalid required",
+		})
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, domain.AnydocUploadResp{
+			Code: 1,
+			Err:  "invalid required",
+		})
+	}
+
+	path := c.FormValue("path")
+	if path == "" {
+		return c.JSON(http.StatusBadRequest, domain.AnydocUploadResp{
+			Code: 1,
+			Err:  "invalid required",
+		})
+	}
+
+	h.logger.Debug("AnydocUpload file", "path", path)
+	_, err = h.fileUsecase.AnyDocUploadFile(c.Request().Context(), file, path)
+	if err != nil {
+		return h.NewResponseWithError(c, "upload failed", err)
+	}
+	url := fmt.Sprintf("/static-file/%s", strings.TrimPrefix(path, "/"))
+	h.logger.Debug("AnydocUpload file", "path", url)
+
+	return c.JSON(http.StatusOK, domain.AnydocUploadResp{
+		Code: 0,
+		Data: url,
 	})
 }

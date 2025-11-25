@@ -1,4 +1,5 @@
-import { statCount, StatTypeItem } from '@/api';
+import { StatTypeItem } from '@/api';
+import { getApiV1StatCount } from '@/request/Stat';
 import BlueCard from '@/assets/images/blueCard.png';
 import PurpleCard from '@/assets/images/purpleCard.png';
 import Card from '@/components/Card';
@@ -7,10 +8,11 @@ import { addOpacityToColor } from '@/utils';
 import { Box, Stack } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { ActiveTab } from '.';
+import { V1StatCountResp } from '@/request/types';
 
 const TypeCount = ({ tab }: { tab: ActiveTab }) => {
   const { kb_id = '' } = useAppSelector(state => state.config);
-  const [data, setData] = useState<StatTypeItem | null>(null);
+  const [data, setData] = useState<V1StatCountResp | null>(null);
 
   const list = [
     {
@@ -40,7 +42,8 @@ const TypeCount = ({ tab }: { tab: ActiveTab }) => {
   ];
 
   useEffect(() => {
-    statCount({ kb_id }).then(res => {
+    if (!kb_id) return;
+    getApiV1StatCount({ kb_id, day: tab }).then(res => {
       setData(res);
     });
   }, [tab, kb_id]);
@@ -61,7 +64,7 @@ const TypeCount = ({ tab }: { tab: ActiveTab }) => {
           <Box
             sx={{
               fontSize: 20,
-              fontFamily: 'Gbold',
+              fontWeight: 700,
               lineHeight: '28px',
               height: 28,
             }}

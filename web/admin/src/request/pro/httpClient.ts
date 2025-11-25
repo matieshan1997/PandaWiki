@@ -10,6 +10,7 @@
  * ---------------------------------------------------------------
  */
 
+import { message } from "@ctzhian/ui";
 import type {
   AxiosInstance,
   AxiosRequestConfig,
@@ -17,7 +18,6 @@ import type {
   ResponseType,
 } from "axios";
 import axios from "axios";
-import { Message } from "ct-mui";
 
 export type QueryParamsType = Record<string | number, any>;
 
@@ -97,10 +97,10 @@ export class HttpClient<SecurityDataType = unknown> {
           if (res.success) {
             return res.data;
           }
-          Message.error(res.message || "网络异常");
+          message.error(res.message || "网络异常");
           return Promise.reject(res);
         }
-        Message.error(response.statusText);
+        message.error(response.statusText);
         return Promise.reject(response);
       },
       (error) => {
@@ -108,7 +108,9 @@ export class HttpClient<SecurityDataType = unknown> {
           window.location.href = "/login";
           localStorage.removeItem("panda_wiki_token");
         }
-        Message.error(error.response?.statusText || "网络异常");
+        if (error.code !== "ERR_CANCELED") {
+          message.error(error.response?.statusText || "网络异常");
+        }
         return Promise.reject(error.response);
       },
     );

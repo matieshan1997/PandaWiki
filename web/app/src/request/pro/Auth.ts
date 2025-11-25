@@ -13,6 +13,7 @@
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DeleteApiProV1AuthDeleteParams,
+  DomainPWResponse,
   DomainResponse,
   GetApiProV1AuthGetParams,
   GithubComChaitinPandaWikiProApiAuthV1AuthGetResp,
@@ -52,7 +53,7 @@ export const deleteApiProV1AuthDelete = (
  * @summary 获取授权信息
  * @request GET:/api/pro/v1/auth/get
  * @secure
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: GithubComChaitinPandaWikiProApiAuthV1AuthGetResp,
 
 })` OK
@@ -63,7 +64,7 @@ export const getApiProV1AuthGet = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: GithubComChaitinPandaWikiProApiAuthV1AuthGetResp;
     }
   >({

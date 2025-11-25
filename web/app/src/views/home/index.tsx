@@ -1,177 +1,281 @@
 'use client';
 
-import DarkBG from '@/assets/images/dark-bgi.png';
-import LightBG from '@/assets/images/light-bgi.png';
-import { IconSearch } from '@/components/icons';
+import { Banner } from '@panda-wiki/ui';
+import dynamic from 'next/dynamic';
+import { DomainRecommendNodeListResp } from '@/request/types';
+
 import { useStore } from '@/provider';
-import { Box, TextField } from '@mui/material';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import CatalogH5 from '../node/CatalogH5';
-import NodeList from './NodeList';
-import QuestionList from './QuestionList';
 
-const Home = () => {
-  const {
-    mobile = false,
-    kbDetail,
-    themeMode = 'light',
-    catalogShow,
-    nodeList,
-    catalogWidth,
-  } = useStore();
-
-  const catalogSetting = kbDetail?.settings?.catalog_settings;
-  const footerSetting = kbDetail?.settings?.footer_settings;
-  const themeAndStyleSetting = kbDetail?.settings?.theme_and_style;
-  const [footerHeight, setFooterHeight] = useState(0);
-
-  const [searchText, setSearchText] = useState('');
-  const router = useRouter();
-
-  // 获取 Footer 高度的函数
-  const getFooterHeight = () => {
-    const footerElement = document.getElementById('footer');
-    if (footerElement) {
-      const height = footerElement.offsetHeight;
-      setFooterHeight(height);
-      return height;
-    }
-    return 0;
+const handleFaqProps = (config: any = {}) => {
+  return {
+    title: config.title || '链接组',
+    items:
+      config.list?.map((item: any) => ({
+        question: item.question,
+        url: item.link,
+      })) || [],
   };
+};
 
-  useEffect(() => {
-    // 延迟获取高度，确保 DOM 已渲染
-    const timer = setTimeout(() => {
-      getFooterHeight();
-    }, 100);
+const handleBasicDocProps = (
+  config: any = {},
+  docs: DomainRecommendNodeListResp[],
+) => {
+  return {
+    title: config.title || '文档摘要卡片',
+    items:
+      docs?.map(item => ({
+        ...item,
+        summary: item.summary || '暂无摘要',
+      })) || [],
+  };
+};
 
-    // 监听窗口大小变化，重新计算高度
-    const handleResize = () => {
-      getFooterHeight();
-    };
+const handleDirDocProps = (
+  config: any = {},
+  docs: DomainRecommendNodeListResp[],
+) => {
+  return {
+    title: config.title || '文档目录卡片',
+    items:
+      docs?.map(item => ({
+        id: item.id,
+        name: item.name,
+        ...item,
+        recommend_nodes: [...(item.recommend_nodes || [])].sort(
+          (a, b) => (a.position ?? 0) - (b.position ?? 0),
+        ),
+      })) || [],
+  };
+};
 
-    window.addEventListener('resize', handleResize);
+const handleSimpleDocProps = (
+  config: any = {},
+  docs: DomainRecommendNodeListResp[],
+) => {
+  return {
+    title: config.title || '简易文档卡片',
+    items:
+      docs?.map(item => ({
+        ...item,
+      })) || [],
+  };
+};
 
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [footerSetting, mobile]);
+const handleCarouselProps = (config: any = {}) => {
+  return {
+    title: config.title || '轮播图',
+    items:
+      config.list?.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        url: item.url,
+        desc: item.desc,
+      })) || [],
+  };
+};
 
-  const handleSearch = () => {
+const handleBannerProps = (config: any = {}) => {
+  return {
+    title: {
+      text: config.title,
+    },
+    subtitle: {
+      text: config.subtitle,
+    },
+    bg_url: config.bg_url,
+    search: {
+      placeholder: config.placeholder,
+      hot: config.hot_search,
+    },
+    btns: config.btns || [],
+  };
+};
+
+const handleTextProps = (config: any = {}) => {
+  return {
+    title: config.title || '标题',
+  };
+};
+
+const handleCaseProps = (config: any = {}) => {
+  return {
+    title: config.title || '案例',
+    items: config.list || [],
+  };
+};
+
+const handleMetricsProps = (config: any = {}) => {
+  return {
+    title: config.title || '指标',
+    items: config.list || [],
+  };
+};
+
+const handleFeatureProps = (config: any = {}) => {
+  return {
+    title: config.title || '产品特性',
+    items: config.list || [],
+  };
+};
+
+const handleImgTextProps = (config: any = {}) => {
+  return {
+    title: config.title || '左图右字',
+    item: config.item || {},
+    direction: 'row',
+  };
+};
+
+const handleTextImgProps = (config: any = {}) => {
+  return {
+    title: config.title || '右图左字',
+    item: config.item || {},
+    direction: 'row-reverse',
+  };
+};
+
+const handleCommentProps = (config: any = {}) => {
+  return {
+    title: config.title || '评论卡片',
+    items: config.list || [],
+  };
+};
+
+const handleBlockGridProps = (config: any = {}) => {
+  return {
+    title: config.title || '区块网格',
+    items: config.list || [],
+  };
+};
+
+const handleQuestionProps = (config: any = {}) => {
+  return {
+    title: config.title || '常见问题',
+    items: config.list || [],
+  };
+};
+
+const componentMap = {
+  banner: Banner,
+  basic_doc: dynamic(() => import('@panda-wiki/ui').then(mod => mod.BasicDoc)),
+  dir_doc: dynamic(() => import('@panda-wiki/ui').then(mod => mod.DirDoc)),
+  simple_doc: dynamic(() =>
+    import('@panda-wiki/ui').then(mod => mod.SimpleDoc),
+  ),
+  carousel: dynamic(() => import('@panda-wiki/ui').then(mod => mod.Carousel)),
+  faq: dynamic(() => import('@panda-wiki/ui').then(mod => mod.Faq)),
+  text: dynamic(() => import('@panda-wiki/ui').then(mod => mod.Text)),
+  case: dynamic(() => import('@panda-wiki/ui').then(mod => mod.Case)),
+  metrics: dynamic(() => import('@panda-wiki/ui').then(mod => mod.Metrics)),
+  feature: dynamic(() => import('@panda-wiki/ui').then(mod => mod.Feature)),
+  text_img: dynamic(() => import('@panda-wiki/ui').then(mod => mod.ImgText)),
+  img_text: dynamic(() => import('@panda-wiki/ui').then(mod => mod.ImgText)),
+  comment: dynamic(() => import('@panda-wiki/ui').then(mod => mod.Comment)),
+  block_grid: dynamic(() =>
+    import('@panda-wiki/ui').then(mod => mod.BlockGrid),
+  ),
+  question: dynamic(() => import('@panda-wiki/ui').then(mod => mod.Question)),
+} as const;
+
+const Welcome = () => {
+  const { mobile = false, kbDetail, setQaModalOpen } = useStore();
+  const settings = kbDetail?.settings;
+  const onBannerSearch = (
+    searchText: string,
+    type: 'chat' | 'search' = 'chat',
+  ) => {
     if (searchText.trim()) {
-      sessionStorage.setItem('chat_search_query', searchText.trim());
-      router.push('/chat');
+      if (type === 'chat') {
+        sessionStorage.setItem('chat_search_query', searchText.trim());
+        setQaModalOpen?.(true);
+      } else {
+        sessionStorage.setItem('chat_search_query', searchText.trim());
+      }
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  const TYPE_TO_CONFIG_LABEL = {
+    banner: 'banner_config',
+    basic_doc: 'basic_doc_config',
+    dir_doc: 'dir_doc_config',
+    simple_doc: 'simple_doc_config',
+    carousel: 'carousel_config',
+    faq: 'faq_config',
+    text: 'text_config',
+    case: 'case_config',
+    metrics: 'metrics_config',
+    feature: 'feature_config',
+    text_img: 'text_img_config',
+    img_text: 'img_text_config',
+    comment: 'comment_config',
+    block_grid: 'block_grid_config',
+    question: 'question_config',
+  } as const;
+
+  const handleComponentProps = (data: any) => {
+    const config =
+      data[
+        TYPE_TO_CONFIG_LABEL[data.type as keyof typeof TYPE_TO_CONFIG_LABEL]
+      ];
+
+    switch (data.type) {
+      case 'faq':
+        return handleFaqProps(config);
+      case 'basic_doc':
+        return handleBasicDocProps(config, data.nodes);
+      case 'dir_doc':
+        return handleDirDocProps(config, data.nodes);
+      case 'simple_doc':
+        return handleSimpleDocProps(config, data.nodes);
+      case 'carousel':
+        return handleCarouselProps(config);
+      case 'banner':
+        return {
+          ...handleBannerProps(config),
+          onSearch: onBannerSearch,
+          btns: (config?.btns || []).map((item: any) => ({
+            ...item,
+            href: item.href || '/node',
+          })),
+        };
+      case 'text':
+        return handleTextProps(config);
+      case 'case':
+        return handleCaseProps(config);
+      case 'metrics':
+        return handleMetricsProps(config);
+      case 'feature':
+        return handleFeatureProps(config);
+      case 'text_img':
+        return handleTextImgProps(config);
+      case 'img_text':
+        return handleImgTextProps(config);
+      case 'comment':
+        return handleCommentProps(config);
+      case 'block_grid':
+        return handleBlockGridProps(config);
+      case 'question':
+        return {
+          ...handleQuestionProps(config),
+          onSearch: (text: string) => {
+            onBannerSearch(text, 'chat');
+          },
+        };
     }
   };
-
   return (
-    <Box
-      style={{
-        marginLeft: catalogShow ? `${catalogWidth!}px` : '16px',
-        ...(mobile && {
-          marginLeft: 0,
-        }),
-      }}
-      sx={{
-        pt: 8,
-        minHeight: `calc(100vh - ${footerHeight + 1}px)`,
-        ...(mobile && {
-          pt: nodeList ? 14 : 5,
-        }),
-      }}
-    >
-      <Box
-        sx={{
-          pt: 10,
-          pb: 5,
-          backgroundImage: `url(${themeAndStyleSetting?.bg_image ||
-            (themeMode === 'dark' ? DarkBG.src : LightBG.src)
-            })`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
-      >
-        {nodeList && mobile && <CatalogH5 nodes={nodeList} />}
-        <Box
-          sx={{
-            maxWidth: '1200px',
-            mx: 'auto',
-            color: 'text.primary',
-            fontSize: '40px',
-            textAlign: 'center',
-            fontWeight: '700',
-            lineHeight: '44px',
-            ...(mobile && {
-              fontSize: '32px',
-              lineHeight: '40px',
-            }),
-          }}
-        >
-          {kbDetail?.settings?.welcome_str}
-        </Box>
-        <Box
-          sx={{
-            width: '656px',
-            margin: '40px auto 0',
-            ...(mobile && {
-              width: 'calc(100% - 48px)',
-            }),
-          }}
-        >
-          <TextField
-            fullWidth
-            sx={{
-              width: '100%',
-              borderRadius: '10px',
-              overflow: 'hidden',
-              '& .MuiInputBase-input': {
-                p: 2,
-                lineHeight: '24px',
-                height: '24px',
-                fontFamily: 'Mono',
-              },
-              '& .MuiOutlinedInput-root': {
-                pr: '18px',
-                bgcolor:
-                  themeMode === 'dark'
-                    ? 'background.paper2'
-                    : 'background.default',
-                '& fieldset': {
-                  borderRadius: '10px',
-                  borderColor: 'divider',
-                  px: 2,
-                },
-              },
-            }}
-            placeholder={kbDetail?.settings?.search_placeholder || '开始搜索'}
-            autoComplete='off'
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            InputProps={{
-              endAdornment: (
-                <IconSearch
-                  sx={{ cursor: 'pointer', color: 'text.tertiary' }}
-                  onClick={handleSearch}
-                />
-              ),
-            }}
-          />
-        </Box>
-        {!mobile && <QuestionList />}
-      </Box>
-      <NodeList />
-    </Box>
+    <>
+      {settings?.web_app_landing_configs?.map((item, index) => {
+        const Component = componentMap[item.type as keyof typeof componentMap];
+        const props = handleComponentProps(item);
+        return Component ? (
+          // @ts-ignore
+          <Component key={index} mobile={mobile} {...props} />
+        ) : null;
+      })}
+    </>
   );
 };
 
-export default Home;
+export default Welcome;

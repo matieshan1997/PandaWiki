@@ -55,12 +55,7 @@ const NavBtns = ({ detail }: { detail?: KBDetail }) => {
             sx={{ py: '14px', cursor: 'pointer', ml: 3 }}
           >
             {detail?.settings?.icon && (
-              <img
-                src={detail?.settings?.icon}
-                alt='logo'
-                width={32}
-                height={32}
-              />
+              <img src={detail?.settings?.icon} alt='logo' width={32} />
             )}
             <Box sx={{ fontSize: 18 }}>{detail?.settings?.title}</Box>
           </Stack>

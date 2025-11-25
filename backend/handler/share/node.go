@@ -3,6 +3,7 @@ package share
 import (
 	"github.com/labstack/echo/v4"
 
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/usecase"
@@ -51,7 +52,7 @@ func (h *ShareNodeHandler) GetNodeList(c echo.Context) error {
 		return h.NewResponseWithError(c, "kb_id is required", nil)
 	}
 
-	nodes, err := h.usecase.GetNodeReleaseListByKBID(c.Request().Context(), kbID)
+	nodes, err := h.usecase.GetNodeReleaseListByKBID(c.Request().Context(), kbID, domain.GetAuthID(c))
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get node list", err)
 	}
@@ -68,7 +69,8 @@ func (h *ShareNodeHandler) GetNodeList(c echo.Context) error {
 //	@Produce		json
 //	@Param			X-KB-ID	header		string	true	"kb id"
 //	@Param			id		query		string	true	"node id"
-//	@Success		200		{object}	domain.Response
+//	@Param			format	query		string	true	"format"
+//	@Success		200		{object}	domain.Response{data=v1.ShareNodeDetailResp}
 //	@Router			/share/v1/node/detail [get]
 func (h *ShareNodeHandler) GetNodeDetail(c echo.Context) error {
 	kbID := c.Request().Header.Get("X-KB-ID")
@@ -80,9 +82,24 @@ func (h *ShareNodeHandler) GetNodeDetail(c echo.Context) error {
 		return h.NewResponseWithError(c, "id is required", nil)
 	}
 
-	node, err := h.usecase.GetNodeReleaseDetailByKBIDAndID(c.Request().Context(), kbID, id)
+	errCode := h.usecase.ValidateNodePerm(c.Request().Context(), kbID, id, domain.GetAuthID(c))
+	if errCode != nil {
+		return h.NewResponseWithErrCode(c, *errCode)
+	}
+
+	node, err := h.usecase.GetNodeReleaseDetailByKBIDAndID(c.Request().Context(), kbID, id, c.QueryParam("format"))
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get node detail", err)
 	}
+
+	// If the node is a folder, return the list of child nodes
+	if node.Type == domain.NodeTypeFolder {
+		childNodes, err := h.usecase.GetNodeReleaseListByParentID(c.Request().Context(), kbID, id, domain.GetAuthID(c))
+		if err != nil {
+			return h.NewResponseWithError(c, "failed to get child nodes", err)
+		}
+		node.List = childNodes
+	}
+
 	return h.NewResponseWithData(c, node)
 }

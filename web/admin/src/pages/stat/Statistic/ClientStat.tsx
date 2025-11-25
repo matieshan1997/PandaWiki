@@ -1,4 +1,5 @@
-import { TrendData, statBrowsers } from '@/api';
+import { TrendData } from '@/api';
+import { getApiV1StatBrowsers } from '@/request/Stat';
 import Nodata from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import PieTrend from '@/components/PieTrend';
@@ -16,24 +17,25 @@ const ClientStat = ({ tab }: { tab: ActiveTab }) => {
   >([]);
 
   useEffect(() => {
-    statBrowsers({ kb_id }).then(res => {
+    if (!kb_id) return;
+    getApiV1StatBrowsers({ kb_id, day: tab }).then(res => {
       setOsList(
         (res.os || [])
-          .sort((a, b) => b.count - a.count)
+          .sort((a, b) => b.count! - a.count!)
           .slice(0, 5)
           .map((it, idx) => ({
-            name: it.name,
-            count: it.count,
+            name: it.name!,
+            count: it.count!,
             color: chartColor[idx],
           })),
       );
       setBrowserList(
         (res.browser || [])
-          .sort((a, b) => b.count - a.count)
+          .sort((a, b) => b.count! - a.count!)
           .slice(0, 5)
           .map((it, idx) => ({
-            name: it.name,
-            count: it.count,
+            name: it.name!,
+            count: it.count!,
             color: chartColor[idx],
           })),
       );
@@ -73,7 +75,7 @@ const ClientStat = ({ tab }: { tab: ActiveTab }) => {
           </Stack>
           <Card
             sx={{
-              bgcolor: 'background.paper2',
+              bgcolor: 'background.paper3',
               p: 2,
             }}
           >
@@ -87,7 +89,7 @@ const ClientStat = ({ tab }: { tab: ActiveTab }) => {
                     direction={'row'}
                     alignItems={'center'}
                     justifyContent={'space-between'}
-                    key={it.name}
+                    key={it.name!}
                   >
                     <Stack direction={'row'} alignItems={'center'} gap={1}>
                       <Box
@@ -98,9 +100,9 @@ const ClientStat = ({ tab }: { tab: ActiveTab }) => {
                           bgcolor: it.color,
                         }}
                       ></Box>
-                      <Box>{it.name || '-'}</Box>
+                      <Box>{it.name! || '-'}</Box>
                     </Stack>
-                    <Box sx={{ fontFamily: 'Gbold' }}>{it.count}</Box>
+                    <Box sx={{ fontWeight: 700 }}>{it.count}</Box>
                   </Stack>
                 ))}
               </Stack>
@@ -123,7 +125,7 @@ const ClientStat = ({ tab }: { tab: ActiveTab }) => {
                       ></Box>
                       <Box>{it.name || '-'}</Box>
                     </Stack>
-                    <Box sx={{ fontFamily: 'Gbold' }}>{it.count}</Box>
+                    <Box sx={{ fontWeight: 700 }}>{it.count}</Box>
                   </Stack>
                 ))}
               </Stack>

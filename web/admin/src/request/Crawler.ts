@@ -12,118 +12,40 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
-  DomainAnalysisConfluenceResp,
-  DomainEpubResp,
-  DomainGetDocsReq,
-  DomainGetDocxReq,
-  DomainGetDocxResp,
-  DomainGetSpaceListReq,
-  DomainGetSpaceListResp,
-  DomainNotnionGetListReq,
-  DomainPage,
-  DomainPageInfo,
-  DomainParseURLReq,
-  DomainParseURLResp,
-  DomainResponse,
-  DomainScrapeReq,
-  DomainScrapeResp,
-  DomainSearchDocxReq,
-  DomainSearchDocxResp,
-  DomainSearchWikiReq,
-  DomainSearchWikiResp,
-  DomainSiYuanResp,
-  DomainWikiJSResp,
-  DomainYuqueResp,
-  PostApiV1CrawlerConfluenceAnalysisExportFilePayload,
-  PostApiV1CrawlerEpubConvertPayload,
-  PostApiV1CrawlerSiyuanAnalysisExportFilePayload,
-  PostApiV1CrawlerWikijsAnalysisExportFilePayload,
-  PostApiV1CrawlerYuqueAnalysisExportFilePayload,
+  DomainPWResponse,
+  V1CrawlerExportReq,
+  V1CrawlerExportResp,
+  V1CrawlerParseReq,
+  V1CrawlerParseResp,
+  V1CrawlerResultReq,
+  V1CrawlerResultResp,
+  V1CrawlerResultsReq,
+  V1CrawlerResultsResp,
 } from "./types";
 
 /**
- * @description Analyze Confluence Export File
+ * @description CrawlerExport
  *
  * @tags crawler
- * @name PostApiV1CrawlerConfluenceAnalysisExportFile
- * @summary AnalysisConfluenceExportFile
- * @request POST:/api/v1/crawler/confluence/analysis_export_file
- * @response `200` `(DomainResponse & {
-    data?: (DomainAnalysisConfluenceResp)[],
+ * @name PostApiV1CrawlerExport
+ * @summary CrawlerExport
+ * @request POST:/api/v1/crawler/export
+ * @response `200` `(DomainPWResponse & {
+    data?: V1CrawlerExportResp,
 
 })` OK
  */
 
-export const postApiV1CrawlerConfluenceAnalysisExportFile = (
-  data: PostApiV1CrawlerConfluenceAnalysisExportFilePayload,
+export const postApiV1CrawlerExport = (
+  body: V1CrawlerExportReq,
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
-      data?: DomainAnalysisConfluenceResp[];
+    DomainPWResponse & {
+      data?: V1CrawlerExportResp;
     }
   >({
-    path: `/api/v1/crawler/confluence/analysis_export_file`,
-    method: "POST",
-    body: data,
-    type: ContentType.FormData,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description QpubConvert
- *
- * @tags crawler
- * @name PostApiV1CrawlerEpubConvert
- * @summary QpubConvert
- * @request POST:/api/v1/crawler/epub/convert
- * @response `200` `(DomainResponse & {
-    data?: DomainEpubResp,
-
-})` OK
- */
-
-export const postApiV1CrawlerEpubConvert = (
-  data: PostApiV1CrawlerEpubConvertPayload,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainEpubResp;
-    }
-  >({
-    path: `/api/v1/crawler/epub/convert`,
-    method: "POST",
-    body: data,
-    type: ContentType.FormData,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description Get Docx in Feishu Spaces
- *
- * @tags crawler
- * @name PostApiV1CrawlerFeishuGetDoc
- * @summary FeishuGetDocx
- * @request POST:/api/v1/crawler/feishu/get_doc
- * @response `200` `(DomainResponse & {
-    data?: (DomainGetDocxResp)[],
-
-})` OK
- */
-
-export const postApiV1CrawlerFeishuGetDoc = (
-  body: DomainGetDocxReq,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainGetDocxResp[];
-    }
-  >({
-    path: `/api/v1/crawler/feishu/get_doc`,
+    path: `/api/v1/crawler/export`,
     method: "POST",
     body: body,
     type: ContentType.Json,
@@ -132,28 +54,28 @@ export const postApiV1CrawlerFeishuGetDoc = (
   });
 
 /**
- * @description List Docx in Feishu Spaces
+ * @description 解析文档树
  *
  * @tags crawler
- * @name PostApiV1CrawlerFeishuListDoc
- * @summary FeishuListDoc
- * @request POST:/api/v1/crawler/feishu/list_doc
- * @response `200` `(DomainResponse & {
-    data?: (DomainSearchDocxResp)[],
+ * @name PostApiV1CrawlerParse
+ * @summary 解析文档树
+ * @request POST:/api/v1/crawler/parse
+ * @response `200` `(DomainPWResponse & {
+    data?: V1CrawlerParseResp,
 
 })` OK
  */
 
-export const postApiV1CrawlerFeishuListDoc = (
-  body: DomainSearchDocxReq,
+export const postApiV1CrawlerParse = (
+  body: V1CrawlerParseReq,
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
-      data?: DomainSearchDocxResp[];
+    DomainPWResponse & {
+      data?: V1CrawlerParseResp;
     }
   >({
-    path: `/api/v1/crawler/feishu/list_doc`,
+    path: `/api/v1/crawler/parse`,
     method: "POST",
     body: body,
     type: ContentType.Json,
@@ -162,29 +84,29 @@ export const postApiV1CrawlerFeishuListDoc = (
   });
 
 /**
- * @description List All Feishu Spaces
+ * @description Retrieve the result of a previously started scraping task
  *
  * @tags crawler
- * @name PostApiV1CrawlerFeishuListSpaces
- * @summary FeishuListSpaces
- * @request POST:/api/v1/crawler/feishu/list_spaces
- * @response `200` `(DomainResponse & {
-    data?: (DomainGetSpaceListResp)[],
+ * @name GetApiV1CrawlerResult
+ * @summary Get Crawler Result
+ * @request GET:/api/v1/crawler/result
+ * @response `200` `(DomainPWResponse & {
+    data?: V1CrawlerResultResp,
 
 })` OK
  */
 
-export const postApiV1CrawlerFeishuListSpaces = (
-  body: DomainGetSpaceListReq,
+export const getApiV1CrawlerResult = (
+  body: V1CrawlerResultReq,
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
-      data?: DomainGetSpaceListResp[];
+    DomainPWResponse & {
+      data?: V1CrawlerResultResp;
     }
   >({
-    path: `/api/v1/crawler/feishu/list_spaces`,
-    method: "POST",
+    path: `/api/v1/crawler/result`,
+    method: "GET",
     body: body,
     type: ContentType.Json,
     format: "json",
@@ -192,271 +114,31 @@ export const postApiV1CrawlerFeishuListSpaces = (
   });
 
 /**
- * @description Search Wiki in Feishu Spaces
+ * @description Retrieve the results of a previously started scraping task
  *
  * @tags crawler
- * @name PostApiV1CrawlerFeishuSearchWiki
- * @summary FeishuSearchWiki
- * @request POST:/api/v1/crawler/feishu/search_wiki
- * @response `200` `(DomainResponse & {
-    data?: (DomainSearchWikiResp)[],
+ * @name PostApiV1CrawlerResults
+ * @summary Get Crawler Results
+ * @request POST:/api/v1/crawler/results
+ * @response `200` `(DomainPWResponse & {
+    data?: V1CrawlerResultsResp,
 
 })` OK
  */
 
-export const postApiV1CrawlerFeishuSearchWiki = (
-  body: DomainSearchWikiReq,
+export const postApiV1CrawlerResults = (
+  param: V1CrawlerResultsReq,
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
-      data?: DomainSearchWikiResp[];
+    DomainPWResponse & {
+      data?: V1CrawlerResultsResp;
     }
   >({
-    path: `/api/v1/crawler/feishu/search_wiki`,
+    path: `/api/v1/crawler/results`,
     method: "POST",
-    body: body,
+    body: param,
     type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description GetDocs
- *
- * @tags crawler
- * @name PostApiV1CrawlerNotionGetDoc
- * @summary GetDocs
- * @request POST:/api/v1/crawler/notion/get_doc
- * @response `200` `(DomainResponse & {
-    data?: (DomainPage)[],
-
-})` OK
- */
-
-export const postApiV1CrawlerNotionGetDoc = (
-  body: DomainGetDocsReq,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainPage[];
-    }
-  >({
-    path: `/api/v1/crawler/notion/get_doc`,
-    method: "POST",
-    body: body,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description NotionGetList
- *
- * @tags crawler
- * @name PostApiV1CrawlerNotionGetList
- * @summary NotionGetList
- * @request POST:/api/v1/crawler/notion/get_list
- * @response `200` `(DomainResponse & {
-    data?: (DomainPageInfo)[],
-
-})` OK
- */
-
-export const postApiV1CrawlerNotionGetList = (
-  body: DomainNotnionGetListReq,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainPageInfo[];
-    }
-  >({
-    path: `/api/v1/crawler/notion/get_list`,
-    method: "POST",
-    body: body,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description Parse RSS
- *
- * @tags crawler
- * @name PostApiV1CrawlerParseRss
- * @summary Parse RSS
- * @request POST:/api/v1/crawler/parse_rss
- * @response `200` `(DomainResponse & {
-    data?: DomainParseURLResp,
-
-})` OK
- */
-
-export const postApiV1CrawlerParseRss = (
-  body: DomainParseURLReq,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainParseURLResp;
-    }
-  >({
-    path: `/api/v1/crawler/parse_rss`,
-    method: "POST",
-    body: body,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description Parse Sitemap
- *
- * @tags crawler
- * @name PostApiV1CrawlerParseSitemap
- * @summary Parse Sitemap
- * @request POST:/api/v1/crawler/parse_sitemap
- * @response `200` `(DomainResponse & {
-    data?: DomainParseURLResp,
-
-})` OK
- */
-
-export const postApiV1CrawlerParseSitemap = (
-  body: DomainParseURLReq,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainParseURLResp;
-    }
-  >({
-    path: `/api/v1/crawler/parse_sitemap`,
-    method: "POST",
-    body: body,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description Scrape
- *
- * @tags crawler
- * @name PostApiV1CrawlerScrape
- * @summary Scrape
- * @request POST:/api/v1/crawler/scrape
- * @response `200` `(DomainResponse & {
-    data?: DomainScrapeResp,
-
-})` OK
- */
-
-export const postApiV1CrawlerScrape = (
-  body: DomainScrapeReq,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainScrapeResp;
-    }
-  >({
-    path: `/api/v1/crawler/scrape`,
-    method: "POST",
-    body: body,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description Analyze SiYuan Export File
- *
- * @tags crawler
- * @name PostApiV1CrawlerSiyuanAnalysisExportFile
- * @summary AnalysisSiyuanExportFile
- * @request POST:/api/v1/crawler/siyuan/analysis_export_file
- * @response `200` `(DomainResponse & {
-    data?: (DomainSiYuanResp)[],
-
-})` OK
- */
-
-export const postApiV1CrawlerSiyuanAnalysisExportFile = (
-  data: PostApiV1CrawlerSiyuanAnalysisExportFilePayload,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainSiYuanResp[];
-    }
-  >({
-    path: `/api/v1/crawler/siyuan/analysis_export_file`,
-    method: "POST",
-    body: data,
-    type: ContentType.FormData,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description AnalysisWikijsExportFile
- *
- * @tags crawler
- * @name PostApiV1CrawlerWikijsAnalysisExportFile
- * @summary AnalysisWikijsExportFile
- * @request POST:/api/v1/crawler/wikijs/analysis_export_file
- * @response `200` `(DomainResponse & {
-    data?: (DomainWikiJSResp)[],
-
-})` OK
- */
-
-export const postApiV1CrawlerWikijsAnalysisExportFile = (
-  data: PostApiV1CrawlerWikijsAnalysisExportFilePayload,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainWikiJSResp[];
-    }
-  >({
-    path: `/api/v1/crawler/wikijs/analysis_export_file`,
-    method: "POST",
-    body: data,
-    type: ContentType.FormData,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description Analyze Yuque Export File
- *
- * @tags crawler
- * @name PostApiV1CrawlerYuqueAnalysisExportFile
- * @summary AnalysisYuqueExportFile
- * @request POST:/api/v1/crawler/yuque/analysis_export_file
- * @response `200` `(DomainResponse & {
-    data?: (DomainYuqueResp)[],
-
-})` OK
- */
-
-export const postApiV1CrawlerYuqueAnalysisExportFile = (
-  data: PostApiV1CrawlerYuqueAnalysisExportFilePayload,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainYuqueResp[];
-    }
-  >({
-    path: `/api/v1/crawler/yuque/analysis_export_file`,
-    method: "POST",
-    body: data,
-    type: ContentType.FormData,
     format: "json",
     ...params,
   });

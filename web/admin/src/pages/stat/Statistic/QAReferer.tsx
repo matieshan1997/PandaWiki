@@ -1,4 +1,5 @@
-import { statConversationDistribution, TrendData } from '@/api';
+import { TrendData } from '@/api';
+import { getApiV1StatConversationDistribution } from '@/request/Stat';
 import Nodata from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import PieTrend from '@/components/PieTrend';
@@ -13,11 +14,12 @@ const QAReferer = ({ tab }: { tab: ActiveTab }) => {
   const [list, setList] = useState<TrendData[]>([]);
 
   useEffect(() => {
-    statConversationDistribution({ kb_id }).then(res => {
+    if (!kb_id) return;
+    getApiV1StatConversationDistribution({ kb_id, day: tab }).then(res => {
       setList(
         (res || [])
           .map((it, idx) => ({
-            count: it.count,
+            count: it.count!,
             name: AppType[it.app_type as keyof typeof AppType].label,
             color: chartColor[idx],
           }))
@@ -57,7 +59,7 @@ const QAReferer = ({ tab }: { tab: ActiveTab }) => {
               width: 184,
               flexShrink: 0,
               fontSize: 12,
-              bgcolor: 'background.paper2',
+              bgcolor: 'background.paper3',
               borderRadius: '10px',
             }}
             gap={1.5}
@@ -80,7 +82,7 @@ const QAReferer = ({ tab }: { tab: ActiveTab }) => {
                   ></Box>
                   <Box>{it.name}</Box>
                 </Stack>
-                <Box sx={{ fontFamily: 'Gbold' }}>{it.count}</Box>
+                <Box sx={{ fontWeight: 700 }}>{it.count}</Box>
               </Stack>
             ))}
           </Stack>

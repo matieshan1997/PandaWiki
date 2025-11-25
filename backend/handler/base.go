@@ -14,6 +14,7 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/middleware"
+	"github.com/chaitin/panda-wiki/pkg/captcha"
 )
 
 type BaseHandler struct {
@@ -22,15 +23,17 @@ type BaseHandler struct {
 	config              *config.Config
 	ShareAuthMiddleware *middleware.ShareAuthMiddleware
 	V1Auth              middleware.AuthMiddleware
+	Captcha             *captcha.Captcha
 }
 
-func NewBaseHandler(echo *echo.Echo, logger *log.Logger, config *config.Config, v1Auth middleware.AuthMiddleware, shareAuthMiddleware *middleware.ShareAuthMiddleware) *BaseHandler {
+func NewBaseHandler(echo *echo.Echo, logger *log.Logger, config *config.Config, v1Auth middleware.AuthMiddleware, shareAuthMiddleware *middleware.ShareAuthMiddleware, cap *captcha.Captcha) *BaseHandler {
 	return &BaseHandler{
 		Router:              echo,
 		baseLogger:          logger.WithModule("http_base_handler"),
 		config:              config,
 		ShareAuthMiddleware: shareAuthMiddleware,
 		V1Auth:              v1Auth,
+		Captcha:             cap,
 	}
 }
 
@@ -39,6 +42,10 @@ func (h *BaseHandler) NewResponseWithData(c echo.Context, data any) error {
 		Success: true,
 		Data:    data,
 	})
+}
+
+func (h *BaseHandler) NewResponseWithErrCode(c echo.Context, resp domain.PWResponseErrCode) error {
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *BaseHandler) NewResponseWithError(c echo.Context, msg string, err error) error {

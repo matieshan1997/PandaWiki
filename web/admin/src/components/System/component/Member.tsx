@@ -1,12 +1,12 @@
-import { getApiV1UserList } from '@/request/User';
-import { ConstsUserRole, V1UserListItemResp } from '@/request/types';
 import NoData from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import { tableSx } from '@/constant/styles';
+import { getApiV1UserList } from '@/request/User';
+import { ConstsUserRole, V1UserListItemResp } from '@/request/types';
 import { useAppSelector } from '@/store';
+import { Table } from '@ctzhian/ui';
+import { ColumnType } from '@ctzhian/ui/dist/Table';
 import { Box, Button, Stack, Tooltip } from '@mui/material';
-import { Table } from 'ct-mui';
-import { ColumnType } from 'ct-mui/dist/Table';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import MemberAdd from './MemberAdd';
@@ -15,7 +15,7 @@ import MemberUpdate from './MemberUpdate';
 
 const ConstsUserRoleMap = {
   [ConstsUserRole.UserRoleAdmin]: '超级管理员',
-  [ConstsUserRole.UserRoleUser]: '普通用户',
+  [ConstsUserRole.UserRoleUser]: '普通管理员',
 };
 
 const Member = () => {
@@ -66,24 +66,31 @@ const Member = () => {
     {
       title: '',
       dataIndex: 'action',
-      width: 120,
+      width: 140,
       render: (_, record) => (
         <Stack direction={'row'} gap={2}>
           {record.account === 'admin' ? (
             <Tooltip
               arrow
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    maxWidth: 'none',
+                  },
+                },
+              }}
               title={
                 <Box>
                   <Stack
                     direction={'row'}
                     alignItems={'center'}
                     gap={1}
-                    sx={{ mb: 1 }}
+                    sx={{ mb: 1, whiteSpace: 'nowrap' }}
                   >
                     修改安装目录下
                     <Box
                       sx={{
-                        fontFamily: 'Gbold',
+                        fontWeight: 700,
                         bgcolor: 'background.paper',
                         px: 1.5,
                         py: 0.25,
@@ -96,7 +103,7 @@ const Member = () => {
                     文件中的
                     <Box
                       sx={{
-                        fontFamily: 'Gbold',
+                        fontWeight: 700,
                         bgcolor: 'background.paper',
                         px: 1.5,
                         py: 0.25,
@@ -112,7 +119,7 @@ const Member = () => {
                     执行
                     <Box
                       sx={{
-                        fontFamily: 'Gbold',
+                        fontWeight: 700,
                         bgcolor: 'background.paper',
                         px: 1.5,
                         py: 0.25,
@@ -130,7 +137,7 @@ const Member = () => {
               <Button
                 size='small'
                 sx={{
-                  color: 'text.auxiliary',
+                  color: 'var(--mui-palette-action-disabled)',
                   cursor: 'not-allowed',
                   p: 0,
                   minWidth: 'auto',
@@ -143,6 +150,12 @@ const Member = () => {
             <Button
               size='small'
               sx={{ p: 0, minWidth: 'auto' }}
+              color='primary'
+              disabled={
+                record.role === 'admin' &&
+                user.account !== 'admin' &&
+                user.id !== record.id
+              }
               onClick={() => {
                 setCurUser(record);
                 setCurType('reset-password');
@@ -151,8 +164,9 @@ const Member = () => {
               {user?.id === record.id ? '修改密码' : '重置密码'}
             </Button>
           )}
-          {record.account !== 'admin' &&
-            (user?.id === record.id || user.account === 'admin') && (
+          {user?.id !== record.id &&
+            (user.account === 'admin' ||
+              (user.role === 'admin' && record.role !== 'admin')) && (
               <Button
                 size='small'
                 color='error'
@@ -212,7 +226,7 @@ const Member = () => {
         <Box sx={{ fontSize: 14, lineHeight: '24px', fontWeight: 'bold' }}>
           用户管理
         </Box>
-        <MemberAdd refresh={getData} />
+        <MemberAdd refresh={getData} userLen={userList.length} />
       </Stack>
       <Table
         columns={columns}
@@ -220,6 +234,7 @@ const Member = () => {
         rowKey='id'
         size='small'
         updateScrollTop={false}
+        height='338px'
         sx={{ overflow: 'hidden', ...tableSx }}
         pagination={false}
         renderEmpty={
@@ -232,7 +247,7 @@ const Member = () => {
                 sx={{
                   fontSize: 12,
                   lineHeight: '20px',
-                  color: 'text.auxiliary',
+                  color: 'text.tertiary',
                 }}
               >
                 暂无数据

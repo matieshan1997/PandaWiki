@@ -3,8 +3,6 @@ package telemetry
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -113,12 +111,8 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 		return strings.TrimSpace(string(id)), nil
 	}
 
-	// generate unique ID based on hardware information
-	id := c.getHardwareID()
-	if id == "" {
-		// if no hardware information available, use UUID as fallback
-		id = uuid.New().String()
-	}
+	// generate unique ID using UUID
+	id := uuid.New().String()
 
 	// write machine ID to file and ensure data is written to disk
 	if err := os.WriteFile(machineIDFile, []byte(id), 0o644); err != nil {
@@ -138,43 +132,6 @@ func (c *Client) getOrCreateMachineID() (string, error) {
 		}
 	}
 	return id, nil
-}
-
-// getHardwareID generates a unique ID based on hardware information
-func (c *Client) getHardwareID() string {
-	var info []string
-
-	// get CPU information
-	if cpuInfo, err := os.ReadFile("/proc/cpuinfo"); err == nil {
-		// extract CPU model
-		for line := range strings.SplitSeq(string(cpuInfo), "\n") {
-			if strings.HasPrefix(line, "model name") {
-				parts := strings.Split(line, ":")
-				if len(parts) > 1 {
-					info = append(info, strings.TrimSpace(parts[1]))
-					break
-				}
-			}
-		}
-	}
-
-	// get motherboard serial number
-	if serial, err := os.ReadFile("/sys/class/dmi/id/board_serial"); err == nil {
-		info = append(info, strings.TrimSpace(string(serial)))
-	}
-
-	// get MAC address
-	if mac, err := os.ReadFile("/sys/class/net/eth0/address"); err == nil {
-		info = append(info, strings.TrimSpace(string(mac)))
-	}
-
-	if len(info) == 0 {
-		return ""
-	}
-
-	// use hardware info to generate ID
-	hash := sha256.Sum256([]byte(strings.Join(info, "|")))
-	return hex.EncodeToString(hash[:])
 }
 
 // startPeriodicReport starts periodic report

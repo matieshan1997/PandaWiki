@@ -1,5 +1,4 @@
-import { updateAppDetail } from '@/api';
-import { getApiV1AppDetail } from '@/request/App';
+import { getApiV1AppDetail, putApiV1App } from '@/request/App';
 import {
   DomainAppDetailResp,
   DomainKnowledgeBaseDetail,
@@ -11,16 +10,17 @@ import {
   RadioGroup,
   TextField,
 } from '@mui/material';
-import { Message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { FormItem, SettingCardItem } from './Common';
+import { useAppSelector } from '@/store';
 
 const CardRobotDing = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
   const [isEdit, setIsEdit] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false); // 是否启用钉钉机器人
   const [detail, setDetail] = useState<DomainAppDetailResp | null>(null);
-
+  const { kb_id } = useAppSelector(state => state.config);
   const {
     control,
     handleSubmit,
@@ -53,19 +53,21 @@ const CardRobotDing = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
 
   const onSubmit = handleSubmit(data => {
     if (!detail) return;
-    updateAppDetail(
+    putApiV1App(
       { id: detail.id! },
       {
+        kb_id,
         settings: {
           dingtalk_bot_is_enabled: data.dingtalk_bot_is_enabled,
           dingtalk_bot_client_id: data.dingtalk_bot_client_id,
           dingtalk_bot_client_secret: data.dingtalk_bot_client_secret,
+          // @ts-expect-error 类型错误
           dingtalk_bot_welcome_str: data.dingtalk_bot_welcome_str,
           dingtalk_bot_template_id: data.dingtalk_bot_template_id,
         },
       },
     ).then(() => {
-      Message.success('保存成功');
+      message.success('保存成功');
       setIsEdit(false);
       getDetail();
       reset();

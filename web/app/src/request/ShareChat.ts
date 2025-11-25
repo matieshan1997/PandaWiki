@@ -14,10 +14,35 @@ import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainChatRequest,
   DomainFeedbackRequest,
+  DomainOpenAICompletionsRequest,
+  DomainOpenAICompletionsResponse,
   DomainResponse,
   PostShareV1ChatMessageParams,
-  PostShareV1ChatWidgetParams,
 } from "./types";
+
+/**
+ * @description OpenAI API compatible chat completions endpoint
+ *
+ * @tags share_chat
+ * @name PostShareV1ChatCompletions
+ * @summary ChatCompletions
+ * @request POST:/share/v1/chat/completions
+ * @response `200` `DomainOpenAICompletionsResponse` OK
+ * @response `400` `DomainOpenAIErrorResponse` Bad Request
+ */
+
+export const postShareV1ChatCompletions = (
+  request: DomainOpenAICompletionsRequest,
+  params: RequestParams = {},
+) =>
+  httpRequest<DomainOpenAICompletionsResponse>({
+    path: `/share/v1/chat/completions`,
+    method: "POST",
+    body: request,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
 
 /**
  * @description Process user feedback for chat conversations
@@ -59,31 +84,6 @@ export const postShareV1ChatMessage = (
 ) =>
   httpRequest<DomainResponse>({
     path: `/share/v1/chat/message`,
-    method: "POST",
-    query: query,
-    body: request,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description ChatWidget
- *
- * @tags share_chat
- * @name PostShareV1ChatWidget
- * @summary ChatWidget
- * @request POST:/share/v1/chat/widget
- * @response `200` `DomainResponse` OK
- */
-
-export const postShareV1ChatWidget = (
-  query: PostShareV1ChatWidgetParams,
-  request: DomainChatRequest,
-  params: RequestParams = {},
-) =>
-  httpRequest<DomainResponse>({
-    path: `/share/v1/chat/widget`,
     method: "POST",
     query: query,
     body: request,

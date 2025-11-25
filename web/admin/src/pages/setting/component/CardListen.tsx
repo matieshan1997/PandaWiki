@@ -1,11 +1,11 @@
 import { updateKnowledgeBase, UpdateKnowledgeBaseData } from '@/api';
 import FileText from '@/components/UploadFile/FileText';
+import { DomainKnowledgeBaseDetail } from '@/request/types';
+import { message } from '@ctzhian/ui';
 import { Box, Checkbox, Stack, TextField } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Message } from 'ct-mui';
-import { DomainKnowledgeBaseDetail } from '@/request/types';
-import { SettingCardItem, FormItem } from './Common';
+import { FormItem, SettingCardItem } from './Common';
 
 // 验证规则常量
 const VALIDATION_RULES = {
@@ -64,7 +64,7 @@ const CardListen = ({
   const onSubmit = handleSubmit(value => {
     const formData: Partial<UpdateKnowledgeBaseData['access_settings']> = {};
     if (!value.http && !value.https) {
-      Message.error('至少需要启用一种服务');
+      message.error('至少需要启用一种服务');
       return;
     }
     if (value.domain) formData.hosts = [value.domain];
@@ -73,12 +73,12 @@ const CardListen = ({
       formData.ssl_ports = [+value.ssl_port];
       if (value.httpsCert) formData.public_key = value.httpsCert;
       else {
-        Message.error('请上传证书文件');
+        message.error('请上传证书文件');
         return;
       }
       if (value.httpsKey) formData.private_key = value.httpsKey;
       else {
-        Message.error('请上传私钥文件');
+        message.error('请上传私钥文件');
         return;
       }
     }
@@ -90,7 +90,8 @@ const CardListen = ({
         ...formData,
       },
     }).then(() => {
-      Message.success('更新成功');
+      message.success('更新成功');
+      setIsEdit(false);
       refresh();
     });
   });
@@ -107,7 +108,7 @@ const CardListen = ({
 
   return (
     <SettingCardItem title='服务监听方式' isEdit={isEdit} onSubmit={onSubmit}>
-      <FormItem label='域名'>
+      <FormItem label='域名或 IP'>
         <Controller
           control={control}
           name='domain'
@@ -116,7 +117,7 @@ const CardListen = ({
             <TextField
               {...field}
               fullWidth
-              label='域名'
+              label='域名或 IP'
               onChange={e => {
                 field.onChange(e.target.value);
                 setIsEdit(true);
@@ -156,7 +157,7 @@ const CardListen = ({
                 flexShrink: 0,
                 cursor: 'pointer',
                 fontSize: 14,
-                color: http ? 'text.primary' : 'text.auxiliary',
+                color: http ? 'text.primary' : 'text.tertiary',
               }}
             >
               启用 HTTP
@@ -215,7 +216,7 @@ const CardListen = ({
                 flexShrink: 0,
                 cursor: 'pointer',
                 fontSize: 14,
-                color: https ? 'text.primary' : 'text.auxiliary',
+                color: https ? 'text.primary' : 'text.tertiary',
               }}
             >
               启用 HTTPS

@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"io"
+	"net/http"
 	"net/url"
 
 	"github.com/tidwall/gjson"
@@ -12,10 +13,11 @@ import (
 )
 
 type Client struct {
-	logger *log.Logger
-	ctx    context.Context
-	config *Config
-	oauth  *oauth2.Config
+	logger     *log.Logger
+	ctx        context.Context
+	config     *Config
+	oauth      *oauth2.Config
+	httpClient *http.Client
 }
 
 const (

@@ -4,7 +4,7 @@ import axios, {
   AxiosRequestConfig,
   AxiosResponse,
 } from 'axios';
-import { Message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 
 type BasicResponse<T> = {
   data: T;
@@ -40,10 +40,10 @@ const request = <T>(options: AxiosRequestConfig): Promise<T> => {
         if (res.success) {
           return res.data;
         }
-        Message.error(res.message || '网络异常');
+        message.error(res.message || '网络异常');
         return Promise.reject(res);
       }
-      Message.error(response.statusText);
+      message.error(response.statusText);
       return Promise.reject(response);
     },
     (error: AxiosError) => {
@@ -51,7 +51,7 @@ const request = <T>(options: AxiosRequestConfig): Promise<T> => {
         window.location.href = '/login';
         localStorage.removeItem('panda_wiki_token');
       }
-      Message.error(error.response?.statusText || '网络异常');
+      message.error(error.response?.statusText || '网络异常');
       return Promise.reject(error.response);
     },
   );

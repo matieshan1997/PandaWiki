@@ -5,6 +5,7 @@ type EpubReq struct {
 }
 
 type EpubResp struct {
+	ID      string `json:"id"`
 	Content string `json:"content"`
 	Title   string `json:"title"`
 }

@@ -27,7 +27,9 @@ import {
   alpha,
   ButtonBase,
 } from '@mui/material';
-import { Ellipsis, Table, Modal, Icon, Message } from 'ct-mui';
+import { Ellipsis, Table, Modal, message } from '@ctzhian/ui';
+import { IconGengduo } from '@panda-wiki/icons';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 import dayjs from 'dayjs';
 import { useEffect, useState, useMemo } from 'react';
 
@@ -128,7 +130,7 @@ const ActionMenu = ({
   return (
     <>
       <IconButton size='small' onClick={handleClick}>
-        <Icon type='icon-gengduo' />
+        <IconGengduo sx={{ fontSize: 16 }} />
       </IconButton>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
         {record.status! !== 1 && (
@@ -137,9 +139,7 @@ const ActionMenu = ({
         {record.status! !== -1 && (
           <MenuItem onClick={handleReject}>拒绝</MenuItem>
         )}
-        <MenuItem color='error' onClick={handleDelete}>
-          删除
-        </MenuItem>
+        <MenuItem onClick={handleDelete}>删除</MenuItem>
       </Menu>
     </>
   );
@@ -164,11 +164,8 @@ const Comments = ({
     useState<DomainWebAppCommentSettings | null>(null);
 
   const isEnableReview = useMemo(() => {
-    return !!(
-      appSetting?.moderation_enable &&
-      (license.edition === 1 || license.edition === 2)
-    );
-  }, [appSetting, license]);
+    return PROFESSION_VERSION_PERMISSION.includes(license.edition!);
+  }, [license.edition]);
 
   useEffect(() => {
     setShowCommentsFilter(isEnableReview);
@@ -187,7 +184,7 @@ const Comments = ({
       },
       onOk: () => {
         deleteApiV1CommentList({ ids: [id] }).then(() => {
-          Message.success('删除成功');
+          message.success('删除成功');
           if (page === 1) {
             getData({});
           } else {
@@ -208,7 +205,7 @@ const Comments = ({
           ids: [id],
           status: DomainCommentStatus.CommentStatusReject,
         }).then(() => {
-          Message.success('拒绝成功');
+          message.success('拒绝成功');
           getData({});
         });
       },
@@ -225,7 +222,7 @@ const Comments = ({
           ids: [id],
           status: DomainCommentStatus.CommentStatusAccepted,
         }).then(() => {
-          Message.success('通过成功');
+          message.success('通过成功');
           getData({});
         });
       },
@@ -290,7 +287,7 @@ const Comments = ({
         return (
           <>
             <Box>{ip}</Box>
-            <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>
+            <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
               {country === '中国' ? `${province}-${city}` : `${country}`}
             </Box>
           </>
@@ -311,7 +308,8 @@ const Comments = ({
       title: '操作',
       width: 120,
       render: (text: string, record: DomainCommentListItem) => {
-        return isEnableReview ? (
+        return isEnableReview &&
+          (appSetting?.moderation_enable || record.status === 0) ? (
           <ActionMenu
             record={record}
             onDeleteComment={onDeleteComment}

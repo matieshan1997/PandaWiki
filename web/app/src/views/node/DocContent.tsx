@@ -1,46 +1,52 @@
 'use client';
 
-import { KBDetail, NodeDetail } from '@/assets/type';
-import { IconFile, IconFolder } from '@/components/icons';
+import CommentInput, {
+  CommentInputRef,
+  ImageItem,
+} from '@/components/commentInput';
+import { IconWenjianjia, IconWenjian } from '@panda-wiki/icons';
+import FolderList from './folderList';
+import { DocWidth } from '@/constant';
 import { useStore } from '@/provider';
-import { Box, Button, Divider, Stack, TextField, alpha } from '@mui/material';
-import { Editor, UseTiptapReturn } from '@yu-cq/tiptap';
-import { Controller, useForm } from 'react-hook-form';
-
-import FeedbackDialog from '@/components/feedbackModal';
-import TextSelectionTooltip from '@/components/textSelectionTooltip';
-import { useTextSelection } from '@/hooks/useTextSelection';
-import { postShareProV1DocumentFeedback } from '@/request/pro/DocumentFeedback';
 import {
   getShareV1CommentList,
   postShareV1Comment,
 } from '@/request/ShareComment';
-import { base64ToFile } from '@/utils';
-import { message } from 'ct-mui';
+import { Editor, UseTiptapReturn } from '@ctzhian/tiptap';
+import { message } from '@ctzhian/ui';
+import { Box, Button, Divider, Stack, TextField, alpha } from '@mui/material';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { V1ShareNodeDetailResp } from '@/request/types';
+import { PhotoProvider, PhotoView } from 'react-photo-view';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 const DocContent = ({
   info,
+  docWidth,
   editorRef,
-  docId,
-  kbInfo,
   commentList: propsCommentList,
+  characterCount,
 }: {
-  info?: NodeDetail;
+  docWidth?: string;
+  info?: V1ShareNodeDetailResp;
   editorRef: UseTiptapReturn;
-  docId: string;
-  kbInfo?: KBDetail;
   commentList?: any[];
+  characterCount?: number;
 }) => {
-  const { mobile = false, kbDetail, catalogShow, catalogWidth } = useStore();
+  const { mobile = false, authInfo, kbDetail, catalogWidth } = useStore();
+
+  const params = useParams() || {};
+  const [commentLoading, setCommentLoading] = useState(false);
+  const docId = params.id as string;
   const [commentList, setCommentList] = useState<any[]>(propsCommentList ?? []);
-  const [appDetail, setAppDetail] = useState<any>(kbInfo?.settings);
+  const [appDetail, setAppDetail] = useState<any>(kbDetail?.settings);
   const {
     control,
     handleSubmit,
@@ -53,62 +59,9 @@ const DocContent = ({
     },
   });
 
-  const contentInputRef = useRef<HTMLInputElement>(null);
+  const commentInputRef = useRef<CommentInputRef>(null);
   const [contentFocused, setContentFocused] = useState(false);
-
-  // 反馈弹窗状态
-  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
-  const [feedbackData, setFeedbackData] = useState<{
-    selectedText: string;
-    screenshot?: string;
-  }>({ selectedText: '' });
-
-  // 使用划词功能hook
-  const {
-    selectedText,
-    tooltipAnchor,
-    tooltipOpen,
-    screenshot,
-    isCapturingScreenshot,
-    containerRef: docContentRef,
-    handleFeedbackSuggestion,
-    clearSelection,
-  } = useTextSelection({
-    onFeedback: (text: string, screenshotData?: string) => {
-      // 打开反馈弹窗
-      setFeedbackData({
-        selectedText: text,
-        screenshot: screenshotData,
-      });
-      setFeedbackDialogOpen(true);
-    },
-    isEnabled: appDetail?.document_feedback_is_enabled,
-  });
-
-  // 关闭反馈弹窗
-  const handleFeedbackDialogClose = () => {
-    setFeedbackDialogOpen(false);
-    setFeedbackData({ selectedText: '' });
-    // 清理选择状态
-    clearSelection();
-  };
-
-  // 提交反馈
-  const handleFeedbackSubmit = async (data: {
-    correction_suggestion: string;
-  }) => {
-    return await postShareProV1DocumentFeedback({
-      content: feedbackData.selectedText,
-      correction_suggestion: data.correction_suggestion,
-      node_id: docId,
-      image: feedbackData.screenshot
-        ? base64ToFile(
-          feedbackData.screenshot!,
-          `${info?.name || 'screenshot'}.png`,
-        )
-        : undefined,
-    });
-  };
+  const [commentImages, setCommentImages] = useState<ImageItem[]>([]);
 
   const getComment = async () => {
     const res = await getShareV1CommentList({ id: docId });
@@ -123,21 +76,64 @@ const DocContent = ({
     ) {
       getComment();
     }
-  }, [docId, info, appDetail]);
+  }, [docId, info?.kb_id, appDetail?.web_app_comment_settings?.is_enable]);
 
   const onSubmit = handleSubmit(
     async (data: { content: string; name: string }) => {
-      postShareV1Comment({
-        content: data.content,
-        node_id: docId,
-        user_name: data.name,
-      }).then(res => {
+      setCommentLoading(true);
+      let token = '';
+
+      try {
+        const Cap = (await import('@cap.js/widget')).default;
+        const cap = new Cap({
+          apiEndpoint: '/share/v1/captcha/',
+        });
+        const solution = await cap.solve();
+        token = solution.token;
+      } catch (error) {
+        message.error('验证失败');
+        console.log(error, 'error---------');
+        setCommentLoading(false);
+        return;
+      }
+
+      try {
+        // 先上传所有图片
+        let imageUrls: string[] = [];
+        if (commentImages.length > 0 && commentInputRef.current) {
+          imageUrls = await commentInputRef.current.uploadImages();
+        }
+
+        await postShareV1Comment({
+          content: data.content,
+          pic_urls: imageUrls,
+          node_id: docId,
+          user_name: data.name,
+          captcha_token: token,
+        });
+
         getComment();
         reset();
-        message.success('评论成功');
-      });
+        commentInputRef.current?.clearImages();
+        setCommentImages([]);
+        message.success(
+          appDetail?.web_app_comment_settings?.moderation_enable
+            ? '评论已提交，请耐心等待审核'
+            : '评论成功',
+        );
+      } catch (error: any) {
+        console.log(error.message || '评论发布失败');
+      } finally {
+        setCommentLoading(false);
+      }
     },
   );
+
+  useEffect(() => {
+    window.CAP_CUSTOM_WASM_URL =
+      window.location.origin + '/cap@0.0.6/cap_wasm.min.js';
+  }, []);
+
   if (!editorRef || !info) return null;
 
   const renderIp = (ip_address: any = {}) => {
@@ -145,7 +141,7 @@ const DocContent = ({
     return (
       <>
         <Box>{ip}</Box>
-        <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>
+        <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
           {country === '中国' ? `${province}-${city}` : `${country}`}
         </Box>
       </>
@@ -154,19 +150,10 @@ const DocContent = ({
 
   return (
     <Box
-      ref={docContentRef}
-      style={{
-        marginLeft: catalogShow ? `${catalogWidth!}px` : '16px',
-        width: `calc(100% - ${catalogShow ? catalogWidth! : 16}px - 225px)`,
-        ...(mobile && {
-          width: '100%',
-          marginLeft: 0,
-        }),
-      }}
+      id='doc-content'
       sx={theme => ({
         wordBreak: 'break-all',
         color: 'text.primary',
-        px: 10,
         position: 'relative',
         zIndex: 1,
         '& ::selection': {
@@ -175,85 +162,126 @@ const DocContent = ({
             0.2,
           )} !important`,
         },
+        ...(docWidth === 'full' &&
+          !mobile && {
+            flexGrow: 1,
+            width: 0,
+          }),
+        ...(docWidth !== 'full' &&
+          !mobile && {
+            width: DocWidth[docWidth as keyof typeof DocWidth].value,
+            maxWidth: `calc(100% - ${catalogWidth}px - 240px - 192px)`,
+          }),
         ...(mobile && {
-          marginTop: '77px',
+          mx: 'auto',
+          marginTop: 3,
+          width: '100%',
           px: 3,
-          table: {
-            minWidth: 'auto !important',
-          },
         }),
       })}
     >
       <Stack
-        direction={mobile ? 'column' : 'row'}
-        alignItems={mobile ? 'flex-start' : 'center'}
-        justifyContent='space-between'
+        direction={'row'}
+        alignItems={'flex-start'}
+        gap={1}
         sx={{
-          bgcolor: 'background.paper2',
-          p: 3,
-          borderRadius: '10px',
-          border: '1px solid',
-          borderColor: 'divider',
+          fontSize: 30,
+          lineHeight: '36px',
+          fontWeight: 'bold',
+          color: 'text.primary',
+          mb: '10px',
         }}
       >
-        <Stack
-          direction={'row'}
-          alignItems={'flex-start'}
-          gap={1}
-          sx={{
-            fontSize: 32,
-            lineHeight: '40px',
-            fontWeight: '700',
-            color: 'text.primary',
-          }}
-        >
-          {info?.meta?.emoji ? (
-            <Box sx={{ flexShrink: 0 }}>{info?.meta?.emoji}</Box>
-          ) : info?.type === 1 ? (
-            <IconFolder sx={{ flexShrink: 0, mt: 0.5 }} />
-          ) : (
-            <IconFile sx={{ flexShrink: 0, mt: 0.5 }} />
-          )}
-          {info?.name}
-        </Stack>
-        <Stack
-          direction={mobile ? 'row' : 'column'}
-          alignItems={mobile ? 'center' : 'flex-end'}
-          gap={1}
-          sx={{
-            fontSize: 12,
-            textAlign: 'right',
-            width: 100,
-            color: 'text.tertiary',
-            flexShrink: 0,
-            ...(mobile && {
-              width: 'auto',
-              mt: 1,
-            }),
-          }}
-        >
-          {info?.created_at && (
-            <Box>{dayjs(info?.created_at).fromNow()}创建</Box>
-          )}
-          {info?.updated_at && info.updated_at.slice(0, 1) !== '0' && (
-            <Box>{dayjs(info.updated_at).fromNow()}更新</Box>
-          )}
-        </Stack>
+        {info?.meta?.emoji ? (
+          <Box sx={{ flexShrink: 0 }}>{info?.meta?.emoji}</Box>
+        ) : info?.type === 1 ? (
+          <IconWenjianjia sx={{ flexShrink: 0, mt: 0.5 }} />
+        ) : (
+          <IconWenjian sx={{ flexShrink: 0, mt: 0.5 }} />
+        )}
+        {info?.name}
       </Stack>
+      <Stack
+        direction='row'
+        alignItems='center'
+        gap={1}
+        sx={{
+          fontSize: 14,
+          mb: 4,
+          color: 'text.tertiary',
+        }}
+      >
+        {info?.created_at && (
+          <Box>
+            {info?.creator_account && info?.creator_account === 'admin'
+              ? '管理员'
+              : info?.creator_account}{' '}
+            {dayjs(info?.created_at).fromNow()}创建
+          </Box>
+        )}
+        {info?.updated_at && info.updated_at.slice(0, 1) !== '0' && (
+          <>
+            <Box>·</Box>
+            <Box>
+              {info?.editor_account && info?.editor_account === 'admin'
+                ? '管理员'
+                : info?.editor_account}{' '}
+              {dayjs(info.updated_at).fromNow()}更新
+            </Box>
+          </>
+        )}
+        {!!characterCount && characterCount > 0 && (
+          <>
+            <Box>·</Box>
+            <Box>{characterCount} 字</Box>
+          </>
+        )}
+      </Stack>
+      {info?.meta?.summary && (
+        <Box
+          sx={{
+            mb: 6,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: '10px',
+            bgcolor: 'background.paper3',
+            p: '20px',
+            fontSize: 14,
+            lineHeight: '28px',
+            backdropFilter: 'blur(5px)',
+          }}
+        >
+          <Box sx={{ fontWeight: 'bold', mb: 2, lineHeight: '22px' }}>
+            内容摘要
+          </Box>
+          <Box>{info?.meta?.summary}</Box>
+        </Box>
+      )}
       <Box
         className='editor-container'
         sx={{
-          mt: 3,
+          mt: 6,
           '.tiptap.ProseMirror': {
-            color: 'text.primary',
-          },
-          '.editor-table': {
-            width: 'auto',
-            maxWidth: '100%',
+            '.tableWrapper': {
+              width:
+                docWidth === 'full'
+                  ? '100%'
+                  : DocWidth[docWidth as keyof typeof DocWidth].value,
+              overflowX: 'auto',
+              ...(docWidth !== 'full' && {
+                maxWidth: '100%',
+              }),
+              ...(mobile && {
+                width: '100%',
+              }),
+            },
           },
         }}
       >
-        {editorRef.editor && <Editor editor={editorRef.editor} />}
+        {info.type === 2 && editorRef.editor && (
+          <Editor editor={editorRef.editor} />
+        )}
+        {info.type === 1 && <FolderList list={info.list} />}
       </Box>
       {appDetail?.web_app_comment_settings?.is_enable && (
         <>
@@ -276,31 +304,19 @@ const DocContent = ({
                 required: '请输入评论',
               }}
               render={({ field }) => (
-                <TextField
-                  {...field}
-                  inputRef={contentInputRef}
-                  onFocus={e => {
+                <CommentInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  onImagesChange={setCommentImages}
+                  ref={commentInputRef}
+                  onFocus={() => {
                     setContentFocused(true);
-                    // field.onFocus?.(e);
                   }}
-                  onBlur={e => {
+                  onBlur={() => {
                     setContentFocused(false);
                     field.onBlur?.();
                   }}
                   placeholder='请输入评论'
-                  fullWidth
-                  multiline
-                  minRows={4}
-                  sx={{
-                    '.MuiOutlinedInput-notchedOutline': {
-                      border: 'none',
-                      padding: 0,
-                    },
-
-                    '.MuiInputBase-root': {
-                      padding: 0,
-                    },
-                  }}
                   error={!!errors.content}
                   helperText={errors.content?.message}
                 />
@@ -309,36 +325,42 @@ const DocContent = ({
 
             <Divider sx={{ my: 2 }} />
             <Stack
-              direction='row'
+              direction='row-reverse'
               justifyContent='space-between'
               alignItems='center'
               sx={{ fontSize: 14, color: 'text.secondary' }}
             >
-              <Controller
-                rules={{
-                  required: '请输入你的昵称',
-                }}
-                name='name'
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    placeholder='你的昵称'
-                    size='small'
-                    sx={{
-                      '.MuiOutlinedInput-notchedOutline': {
-                        border: '1px solid',
-                        borderColor: 'var(--mui-palette-divider) !important',
-                      },
-                    }}
-                    error={!!errors.name}
-                    helperText={errors.name?.message}
-                  />
-                )}
-              />
-              <Button variant='contained' onClick={onSubmit}>
+              <Button
+                variant='contained'
+                onClick={onSubmit}
+                loading={commentLoading}
+              >
                 发送
               </Button>
+              {!authInfo?.username && (
+                <Controller
+                  rules={{
+                    required: '请输入你的昵称',
+                  }}
+                  name='name'
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      placeholder='你的昵称'
+                      size='small'
+                      sx={{
+                        '.MuiOutlinedInput-notchedOutline': {
+                          border: '1px solid',
+                          borderColor: 'var(--mui-palette-divider) !important',
+                        },
+                      }}
+                      error={!!errors.name}
+                      helperText={errors.name?.message}
+                    />
+                  )}
+                />
+              )}
             </Stack>
           </Box>
           <Stack gap={1} sx={{ mt: 4 }}>
@@ -349,6 +371,66 @@ const DocContent = ({
                     {item.info.user_name}
                   </Box>
                   <Box sx={{ fontSize: 14 }}>{item.content}</Box>
+                  <Stack direction='row' gap={1}>
+                    <PhotoProvider
+                      maskOpacity={0.3}
+                      toolbarRender={({ rotate, onRotate, onScale, scale }) => {
+                        return (
+                          <>
+                            <svg
+                              className='PhotoView-Slider__toolbarIcon'
+                              width='44'
+                              height='44'
+                              viewBox='0 0 768 768'
+                              fill='white'
+                              onClick={() => onScale(scale + 0.2)}
+                            >
+                              <path d='M384 640.5q105 0 180.75-75.75t75.75-180.75-75.75-180.75-180.75-75.75-180.75 75.75-75.75 180.75 75.75 180.75 180.75 75.75zM384 64.5q132 0 225.75 93.75t93.75 225.75-93.75 225.75-225.75 93.75-225.75-93.75-93.75-225.75 93.75-225.75 225.75-93.75zM415.5 223.5v129h129v63h-129v129h-63v-129h-129v-63h129v-129h63z' />
+                            </svg>
+                            <svg
+                              className='PhotoView-Slider__toolbarIcon'
+                              width='44'
+                              height='44'
+                              viewBox='0 0 768 768'
+                              fill='white'
+                              onClick={() => onScale(scale - 0.2)}
+                            >
+                              <path d='M384 640.5q105 0 180.75-75.75t75.75-180.75-75.75-180.75-180.75-75.75-180.75 75.75-75.75 180.75 75.75 180.75 180.75 75.75zM384 64.5q132 0 225.75 93.75t93.75 225.75-93.75 225.75-225.75 93.75-225.75-93.75-93.75-225.75 93.75-225.75 225.75-93.75zM223.5 352.5h321v63h-321v-63z' />
+                            </svg>
+                            <svg
+                              className='PhotoView-Slider__toolbarIcon'
+                              onClick={() => onRotate(rotate + 90)}
+                              width='44'
+                              height='44'
+                              fill='white'
+                              viewBox='0 0 768 768'
+                            >
+                              <path d='M565.5 202.5l75-75v225h-225l103.5-103.5c-34.5-34.5-82.5-57-135-57-106.5 0-192 85.5-192 192s85.5 192 192 192c84 0 156-52.5 181.5-127.5h66c-28.5 111-127.5 192-247.5 192-141 0-255-115.5-255-256.5s114-256.5 255-256.5c70.5 0 135 28.5 181.5 75z' />
+                            </svg>
+                          </>
+                        );
+                      }}
+                    >
+                      {(item.pic_urls || []).map((url: string) => (
+                        <PhotoView key={url} src={url}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            alt={url}
+                            src={url}
+                            width={80}
+                            height={80}
+                            style={{
+                              borderRadius: '4px',
+                              objectFit: 'cover',
+                              boxShadow: '0px 0px 3px 1px rgba(0,0,5,0.15)',
+                              cursor: 'pointer',
+                            }}
+                            referrerPolicy='no-referrer'
+                          />
+                        </PhotoView>
+                      ))}
+                    </PhotoProvider>
+                  </Stack>
                   <Stack
                     direction='row'
                     justifyContent='flex-end'
@@ -371,24 +453,6 @@ const DocContent = ({
           </Stack>
         </>
       )}
-
-      {/* 划词提示tooltip */}
-      <TextSelectionTooltip
-        open={tooltipOpen}
-        selectedText={selectedText}
-        anchorPosition={tooltipAnchor}
-        onFeedbackClick={handleFeedbackSuggestion}
-        isCapturingScreenshot={isCapturingScreenshot}
-      />
-
-      {/* 反馈弹窗 */}
-      <FeedbackDialog
-        open={feedbackDialogOpen}
-        onClose={handleFeedbackDialogClose}
-        selectedText={feedbackData.selectedText}
-        screenshot={feedbackData.screenshot}
-        onSubmit={handleFeedbackSubmit}
-      />
     </Box>
   );
 };

@@ -1,6 +1,8 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 type StatPageScene int
 
@@ -9,6 +11,10 @@ const (
 	StatPageSceneNodeDetail
 	StatPageSceneChat
 	StatPageSceneLogin
+)
+
+var (
+	StatPageSceneNames = []string{"欢迎页", "问答页", "登录页"}
 )
 
 type StatPage struct {
@@ -32,33 +38,26 @@ type StatPageReq struct {
 	NodeID string        `json:"node_id"`
 }
 
-type HotPageResp struct {
+type HotPage struct {
 	Scene    StatPageScene `json:"scene"`
 	NodeID   string        `json:"node_id"`
 	NodeName string        `json:"node_name" gorm:"-"`
-	Count    int           `json:"count"`
+	Count    int64         `json:"count"`
 }
 
-type HotRefererHostResp struct {
+type HotRefererHost struct {
 	RefererHost string `json:"referer_host"`
-	Count       int    `json:"count"`
+	Count       int64  `json:"count"`
 }
 
-type HotBrowserResp struct {
+type HotBrowser struct {
 	OS      []BrowserCount `json:"os"`
 	Browser []BrowserCount `json:"browser"`
 }
 
 type BrowserCount struct {
 	Name  string `json:"name"`
-	Count int    `json:"count"`
-}
-
-type StatPageCountResp struct {
-	IPCount           int64 `json:"ip_count"`
-	SessionCount      int64 `json:"session_count"`
-	PageVisitCount    int64 `json:"page_visit_count"`
-	ConversationCount int64 `json:"conversation_count"`
+	Count int64  `json:"count"`
 }
 
 type InstantCountResp struct {
@@ -78,8 +77,31 @@ type InstantPageResp struct {
 	Info   *AuthUserInfo `json:"info"`
 }
 
-type ConversationDistributionResp struct {
+type ConversationDistribution struct {
 	AppType AppType `json:"app_type"`
 	AppID   string  `json:"app_id"`
-	Count   int     `json:"count"`
+	Count   int64   `json:"count"`
+}
+
+// StatPageHour 按小时聚合的统计数据
+type StatPageHour struct {
+	ID                       int64       `json:"id" gorm:"primaryKey;autoIncrement"`
+	KbID                     string      `json:"kb_id" gorm:"index"`
+	Hour                     time.Time   `json:"hour" gorm:"index"` // 按小时截断的时间
+	IPCount                  int64       `json:"ip_count"`
+	SessionCount             int64       `json:"session_count"`
+	PageVisitCount           int64       `json:"page_visit_count"`
+	ConversationCount        int64       `json:"conversation_count"`
+	GeoCount                 MapStrInt64 `json:"geo_count" gorm:"type:jsonb"`
+	ConversationDistribution MapStrInt64 `json:"conversation_distribution" gorm:"type:jsonb"`
+	HotRefererHost           MapStrInt64 `json:"hot_referer_host" gorm:"type:jsonb"`
+	HotPage                  MapStrInt64 `json:"hot_page" gorm:"type:jsonb"`
+	HotBrowser               MapStrInt64 `json:"hot_browser" gorm:"type:jsonb"`
+	HotOS                    MapStrInt64 `json:"hot_os" gorm:"type:jsonb"`
+
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (StatPageHour) TableName() string {
+	return "stat_page_hours"
 }

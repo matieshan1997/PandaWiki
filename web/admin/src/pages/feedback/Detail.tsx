@@ -3,14 +3,18 @@ import { getApiV1ConversationMessageDetail } from '@/request';
 import MarkDown from '@/components/MarkDown';
 import { useAppSelector } from '@/store';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-} from '@mui/material';
-import { Ellipsis, Icon, Modal } from 'ct-mui';
+import { Box, Stack, Typography, alpha } from '@mui/material';
+import { Ellipsis, Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
+import {
+  StyledConversationItem,
+  StyledUserBubble,
+  StyledAiBubble,
+  StyledThinkingAccordion,
+  StyledThinkingAccordionSummary,
+  StyledThinkingAccordionDetails,
+  StyledAiBubbleContent,
+} from '../conversation/Detail';
 
 const Detail = ({
   id,
@@ -36,6 +40,7 @@ const Detail = ({
           user: data.question,
           assistant: res.content!,
           created_at: res.created_at!,
+          thinking_content: '',
         });
       });
     }
@@ -62,24 +67,43 @@ const Detail = ({
     >
       <Box sx={{ fontSize: 14 }}>
         <Box>
-          <Accordion defaultExpanded={true}>
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon sx={{ fontSize: 24 }} />}
-              sx={{
-                userSelect: 'text',
-                backgroundColor: 'background.paper2',
-                fontSize: '18px',
-                fontWeight: 'bold',
-              }}
-            >
-              {conversations?.user}
-            </AccordionSummary>
-            <AccordionDetails>
-              <MarkDown
-                content={conversations?.assistant || '未查询到回答内容'}
-              />
-            </AccordionDetails>
-          </Accordion>
+          <StyledConversationItem>
+            {/* 用户问题气泡 - 右对齐 */}
+            <StyledUserBubble>{conversations?.user}</StyledUserBubble>
+
+            {/* AI回答气泡 - 左对齐 */}
+            <StyledAiBubble>
+              {/* 思考过程 */}
+              {!!conversations?.thinking_content && (
+                <StyledThinkingAccordion defaultExpanded>
+                  <StyledThinkingAccordionSummary
+                    expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+                  >
+                    <Stack direction='row' alignItems='center' gap={1}>
+                      <Typography
+                        variant='body2'
+                        sx={theme => ({
+                          fontSize: 12,
+                          color: alpha(theme.palette.text.primary, 0.5),
+                        })}
+                      >
+                        已思考
+                      </Typography>
+                    </Stack>
+                  </StyledThinkingAccordionSummary>
+
+                  <StyledThinkingAccordionDetails>
+                    <MarkDown content={conversations?.thinking_content || ''} />
+                  </StyledThinkingAccordionDetails>
+                </StyledThinkingAccordion>
+              )}
+
+              {/* AI回答内容 */}
+              <StyledAiBubbleContent>
+                <MarkDown content={conversations?.assistant || ''} />
+              </StyledAiBubbleContent>
+            </StyledAiBubble>
+          </StyledConversationItem>
         </Box>
       </Box>
     </Modal>

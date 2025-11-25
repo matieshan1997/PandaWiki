@@ -14,7 +14,7 @@ import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainGetNodeReleaseDetailResp,
   DomainNodeReleaseListItem,
-  DomainResponse,
+  DomainPWResponse,
   GetApiProV1NodeReleaseDetailParams,
   GetApiProV1NodeReleaseListParams,
 } from "./types";
@@ -26,7 +26,7 @@ import {
  * @name GetApiProV1NodeReleaseDetail
  * @summary Get Node Release Detail
  * @request GET:/api/pro/v1/node/release/detail
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: DomainGetNodeReleaseDetailResp,
 
 })` OK
@@ -37,7 +37,7 @@ export const getApiProV1NodeReleaseDetail = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainGetNodeReleaseDetailResp;
     }
   >({
@@ -56,7 +56,7 @@ export const getApiProV1NodeReleaseDetail = (
  * @name GetApiProV1NodeReleaseList
  * @summary Get Node Release List
  * @request GET:/api/pro/v1/node/release/list
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: (DomainNodeReleaseListItem)[],
 
 })` OK
@@ -67,7 +67,7 @@ export const getApiProV1NodeReleaseList = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainNodeReleaseListItem[];
     }
   >({

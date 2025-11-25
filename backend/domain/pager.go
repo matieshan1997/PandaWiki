@@ -5,6 +5,10 @@ type Pager struct {
 	PageSize int `json:"per_page" query:"per_page" validate:"required,min=1" message:"per_page must be greater than 0"`
 }
 
+type PagerInfo struct {
+	Total int64 `json:"total"`
+}
+
 func (p *Pager) Offset() int {
 	offset := (p.Page - 1) * p.PageSize
 	if offset < 0 {

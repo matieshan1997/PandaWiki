@@ -13,6 +13,7 @@
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DeleteApiV1CommentListParams,
+  DomainPWResponse,
   DomainResponse,
   GetApiV1CommentParams,
   V1CommentLists,
@@ -25,7 +26,7 @@ import {
  * @name GetApiV1Comment
  * @summary GetCommentModeratedList
  * @request GET:/api/v1/comment
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: V1CommentLists,
 
 })` conversationList
@@ -36,7 +37,7 @@ export const getApiV1Comment = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: V1CommentLists;
     }
   >({

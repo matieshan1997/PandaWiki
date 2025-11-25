@@ -7,8 +7,13 @@ import { tableSx } from '@/constant/styles';
 import { useURLSearchParams } from '@/hooks';
 import { useAppSelector } from '@/store';
 import { Box, Stack, Tooltip } from '@mui/material';
-import { Ellipsis, Icon, Table } from 'ct-mui';
-import { ColumnsType } from 'ct-mui/dist/Table';
+import { Ellipsis, Table } from '@ctzhian/ui';
+import { ColumnsType } from '@ctzhian/ui/dist/Table';
+import {
+  IconDianzanXuanzhong1,
+  IconADiancaiWeixuanzhong2,
+  IconDianzanWeixuanzhong,
+} from '@panda-wiki/icons';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import Detail from './Detail';
@@ -33,15 +38,12 @@ const Evaluate = () => {
       dataIndex: 'question',
       title: '问题',
       render: (text: string, record) => {
+        const AppIcon =
+          AppType[record.app_type as keyof typeof AppType]?.icon || '';
         return (
           <>
             <Stack direction={'row'} alignItems={'center'} gap={1}>
-              <Icon
-                sx={{ fontSize: 12 }}
-                type={
-                  AppType[record.app_type as keyof typeof AppType]?.icon || ''
-                }
-              />
+              <AppIcon sx={{ fontSize: 12 }}></AppIcon>
               <Ellipsis
                 className='primary-color'
                 sx={{ cursor: 'pointer', flex: 1, width: 0 }}
@@ -54,7 +56,7 @@ const Evaluate = () => {
                 {text}
               </Ellipsis>
             </Stack>
-            <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>
+            <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
               {AppType[record.app_type as keyof typeof AppType]?.label || '-'}
             </Box>
           </>
@@ -69,13 +71,13 @@ const Evaluate = () => {
         return (
           <Tooltip
             title={
-              (value!.feedback_content || value!.feedback_type! > 0) && (
+              (value!.feedback_content || +value!.feedback_type! > 0) && (
                 <Box>
-                  {value!.feedback_type! > 0 && (
+                  {+value!.feedback_type! > 0 && (
                     <Box>
                       {
                         FeedbackType[
-                          value?.feedback_type as keyof typeof FeedbackType
+                          value?.feedback_type as unknown as keyof typeof FeedbackType
                         ]
                       }
                     </Box>
@@ -94,19 +96,24 @@ const Evaluate = () => {
               sx={{ cursor: 'pointer', fontSize: 14 }}
             >
               {value!.score === 1 ? (
-                <Icon
-                  type='icon-dianzan-xuanzhong1'
-                  sx={{ cursor: 'pointer', color: 'success.main' }}
+                <IconDianzanXuanzhong1
+                  sx={{
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    color: 'success.main',
+                  }}
                 />
               ) : value!.score === -1 ? (
-                <Icon
-                  type='icon-a-diancai-weixuanzhong2'
-                  sx={{ cursor: 'pointer', color: 'error.main' }}
+                <IconADiancaiWeixuanzhong2
+                  sx={{
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    color: 'error.main',
+                  }}
                 />
               ) : (
-                <Icon
-                  type='icon-dianzan-weixuanzhong'
-                  sx={{ color: 'text.disabled' }}
+                <IconDianzanWeixuanzhong
+                  sx={{ fontSize: 14, color: 'text.disabled' }}
                 />
               )}
             </Stack>
@@ -134,7 +141,7 @@ const Evaluate = () => {
               </Box>
             </Stack>
             {user?.email && (
-              <Box sx={{ color: 'text.auxiliary' }}>{user?.email}</Box>
+              <Box sx={{ color: 'text.tertiary' }}>{user?.email}</Box>
             )}
           </Box>
         );
@@ -153,7 +160,7 @@ const Evaluate = () => {
         return (
           <>
             <Box>{text}</Box>
-            <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>
+            <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
               {country === '中国' ? `${province}-${city}` : `${country}`}
             </Box>
           </>

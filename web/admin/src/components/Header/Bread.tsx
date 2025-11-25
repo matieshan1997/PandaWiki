@@ -1,6 +1,6 @@
 import { useAppSelector } from '@/store';
 import { Box, Stack, useTheme } from '@mui/material';
-import { Icon } from 'ct-mui';
+import { IconXiala } from '@panda-wiki/icons';
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import KBSelect from '../KB/KBSelect';
@@ -13,6 +13,7 @@ const OtherBread = {
   feedback: { title: '反馈', to: '/feedback' },
   application: { title: '设置', to: '/setting' },
   release: { title: '发布', to: '/release' },
+  contribution: { title: '贡献', to: '/contribution' },
 };
 
 const Bread = () => {
@@ -47,9 +48,9 @@ const Bread = () => {
       gap={1}
       sx={{
         flexGrow: 1,
-        color: 'text.auxiliary',
+        color: 'text.tertiary',
         fontSize: '14px',
-        a: { color: 'text.auxiliary' },
+        a: { color: 'text.tertiary' },
         lineHeight: '22px',
       }}
     >
@@ -75,10 +76,7 @@ const Bread = () => {
               ...(idx === breads.length - 1 && { fontWeight: 'bold' }),
             }}
           >
-            <Icon
-              type='icon-xiala'
-              sx={{ fontSize: 20, transform: 'rotate(-90deg)' }}
-            />
+            <IconXiala sx={{ fontSize: 20, transform: 'rotate(-90deg)' }} />
             {it.to === 'custom' ? (
               <Box
                 sx={{ cursor: 'pointer', ':hover': { color: 'primary.main' } }}

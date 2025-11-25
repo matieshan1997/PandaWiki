@@ -1,24 +1,30 @@
-import { createNode, ITreeItem, updateNode } from '@/api';
+import { ITreeItem } from '@/api';
 import Emoji from '@/components/Emoji';
+import {
+  TreeItemComponentProps,
+  TreeItemWrapper,
+} from '@/components/TreeDragSortable';
+import RAG_SOURCES from '@/constant/rag';
 import { treeSx } from '@/constant/styles';
+import { postApiV1Node, putApiV1NodeDetail } from '@/request/Node';
+import { ConstsNodeAccessPerm } from '@/request/types';
 import { useAppSelector } from '@/store';
-import { addOpacityToColor } from '@/utils';
 import { AppContext, updateTree } from '@/utils/drag';
 import { handleMultiSelect, updateAllParentStatus } from '@/utils/tree';
+import { Ellipsis, message } from '@ctzhian/ui';
 import {
   Box,
   Button,
   Checkbox,
+  PaletteColor,
   Stack,
   TextField,
-  useTheme,
+  Theme,
+  Tooltip,
+  alpha,
+  styled,
 } from '@mui/material';
-import { Ellipsis, Message } from 'ct-mui';
 import dayjs from 'dayjs';
-import {
-  SimpleTreeItemWrapper,
-  TreeItemComponentProps,
-} from 'dnd-kit-sortable-tree';
 import React, {
   useCallback,
   useContext,
@@ -29,11 +35,66 @@ import React, {
 } from 'react';
 import TreeMenu from './TreeMenu';
 
+const StyledTag = styled('div')<{ color: keyof Theme['palette'] }>(
+  ({ theme, color }) => ({
+    color: (theme.palette[color] as PaletteColor).main,
+    border: '1px solid',
+    borderColor: (theme.palette[color] as PaletteColor).main,
+    borderRadius: '10px',
+    padding: theme.spacing(0, 1),
+    bgcolor: alpha((theme.palette[color] as PaletteColor).main, 0.1),
+  }),
+);
+
+const ANSWERABLE_PERMISSIONS_MAP = {
+  [ConstsNodeAccessPerm.NodeAccessPermClosed]: {
+    label: '不可被问答',
+    color: 'warning',
+  },
+  [ConstsNodeAccessPerm.NodeAccessPermPartial]: {
+    label: '部分可被问答',
+    color: 'warning',
+  },
+  [ConstsNodeAccessPerm.NodeAccessPermOpen]: {
+    label: '可被问答',
+    color: 'success',
+  },
+} as const;
+
+const VISITABLE_PERMISSIONS_MAP = {
+  [ConstsNodeAccessPerm.NodeAccessPermClosed]: {
+    label: '不可被访问',
+    color: 'warning',
+  },
+  [ConstsNodeAccessPerm.NodeAccessPermPartial]: {
+    label: '部分可被访问',
+    color: 'warning',
+  },
+  [ConstsNodeAccessPerm.NodeAccessPermOpen]: {
+    label: '可被访问',
+    color: 'success',
+  },
+} as const;
+
+const VISIBLE_PERMISSIONS_MAP = {
+  [ConstsNodeAccessPerm.NodeAccessPermClosed]: {
+    label: '导航内不可见',
+    color: 'warning',
+  },
+  [ConstsNodeAccessPerm.NodeAccessPermPartial]: {
+    label: '部分导航内可见',
+    color: 'warning',
+  },
+  [ConstsNodeAccessPerm.NodeAccessPermOpen]: {
+    label: '导航内可见',
+    color: 'success',
+  },
+} as const;
+
 const TreeItem = React.forwardRef<
   HTMLDivElement,
   TreeItemComponentProps<ITreeItem>
 >((props, ref) => {
-  const theme = useTheme();
   const { kb_id: id } = useAppSelector(state => state.config);
   const { item, collapsed } = props;
   const context = useContext(AppContext);
@@ -41,8 +102,7 @@ const TreeItem = React.forwardRef<
   if (!context) throw new Error('TreeItem 必须在 AppContext.Provider 内部使用');
 
   const {
-    items,
-    setItems,
+    data,
     ui = 'move',
     selected = [],
     onSelectChange,
@@ -50,7 +110,9 @@ const TreeItem = React.forwardRef<
     supportSelect = false,
     menu,
     relativeSelect = true,
-    refresh,
+    updateData,
+    disabled,
+    scrollToItem,
   } = context;
 
   const [value, setValue] = useState(item.name);
@@ -59,42 +121,48 @@ const TreeItem = React.forwardRef<
   const inputRef = useRef<HTMLInputElement>(null);
 
   const createItem = useCallback(
-    (type: 1 | 2) => {
-      const temp = [...items];
+    (type: 1 | 2, contentType?: string) => {
+      const newItemId = new Date().getTime().toString();
+      const temp = [...data];
       updateTree(temp, item.id, {
         ...item,
+        collapsed: false, // 展开父节点
         children: [
           ...(item.children ?? []),
           {
-            id: new Date().getTime().toString(),
+            id: newItemId,
             name: '',
             level: item.level + 1,
             type,
             emoji: '',
+            content_type: contentType,
             status: 1,
-            visibility: 2,
             isEditting: true,
             parentId: item.id,
           },
         ],
       });
-      setItems(temp);
+      updateData?.(temp);
+      // 延迟滚动，等待 DOM 更新
+      setTimeout(() => {
+        scrollToItem?.(newItemId);
+      }, 100);
     },
-    [items, item, setItems],
+    [data, item, updateData, scrollToItem],
   );
 
   const renameItem = useCallback(() => {
-    const temp = [...items];
+    const temp = [...data];
     updateTree(temp, item.id, {
       ...item,
       isEditting: true,
     });
-    setItems(temp);
-  }, [items, item, setItems]);
+    updateData?.(temp);
+  }, [data, item, updateData]);
 
   const removeItem = useCallback(
     (id: string) => {
-      const temp = [...items];
+      const temp = [...data];
       const remove = (value: ITreeItem[]) => {
         return value.filter(item => {
           if (item.id === id) return false;
@@ -105,15 +173,15 @@ const TreeItem = React.forwardRef<
         });
       };
       const newItems = remove(temp);
-      setItems(newItems);
+      updateData?.(newItems);
     },
-    [items, item, setItems],
+    [data, item, updateData],
   );
 
   const handleSelectChange = useCallback(
     (id: string) => {
       if (relativeSelect) {
-        const newSelected = handleMultiSelect(items, id, selected);
+        const newSelected = handleMultiSelect(data, id, selected);
         onSelectChange?.(newSelected || [], id);
       } else {
         const temp = [...selected];
@@ -127,12 +195,12 @@ const TreeItem = React.forwardRef<
         }
       }
     },
-    [onSelectChange, selected, items, relativeSelect],
+    [onSelectChange, selected, data, relativeSelect],
   );
 
   useEffect(() => {
     if (relativeSelect && selected.length > 0) {
-      const temp = [...items];
+      const temp = [...data];
       const selectedSet = new Set(selected);
       updateAllParentStatus(temp, selectedSet);
       const newSelected = Array.from(selectedSet);
@@ -140,7 +208,7 @@ const TreeItem = React.forwardRef<
         onSelectChange?.(newSelected);
       }
     }
-  }, [selected, items, relativeSelect, onSelectChange]);
+  }, [selected, data, relativeSelect, onSelectChange]);
 
   useEffect(() => {
     setValue(item.name);
@@ -168,10 +236,17 @@ const TreeItem = React.forwardRef<
     return [];
   }, [item, isEditting, createItem, renameItem, removeItem]);
 
+  const permissions = useMemo(() => {
+    if (item.permissions) {
+      return item.permissions;
+    }
+    return null;
+  }, [item.permissions]);
+
   return (
     <Box
       sx={[
-        treeSx(supportSelect, ui),
+        treeSx(readOnly ?? false),
         {
           '&:hover': {
             '.dnd-sortable-tree_simple_handle': {
@@ -184,16 +259,22 @@ const TreeItem = React.forwardRef<
       <Stack
         direction='row'
         alignItems={'center'}
-        gap={2}
+        gap={supportSelect ? 0 : 0}
         onClick={e => e.stopPropagation()}
       >
-        <div
-          className={'dnd-sortable-tree_simple_handle'}
-          {...props.handleProps}
-        />
+        {!readOnly ? (
+          <div
+            className={'dnd-sortable-tree_simple_handle'}
+            {...props.handleProps}
+          />
+        ) : (
+          <Box />
+        )}
+
         {supportSelect && (
           <Checkbox
             sx={{
+              visibility: disabled?.(item) ? 'hidden' : 'visible',
               flexShrink: 0,
               color: 'text.disabled',
               width: '35px',
@@ -204,14 +285,15 @@ const TreeItem = React.forwardRef<
               e.stopPropagation();
               handleSelectChange(item.id);
             }}
+            disabled={disabled?.(item)}
           />
         )}
-        <Box sx={{ flex: 1 }}>
-          <SimpleTreeItemWrapper
+
+        <Box sx={{ flex: 1, pl: 3 }}>
+          <TreeItemWrapper
             {...props}
             ref={ref}
             indentationWidth={23}
-            disableCollapseOnItemClick={!readOnly}
             showDragHandle={false}
           >
             <Stack
@@ -255,6 +337,9 @@ const TreeItem = React.forwardRef<
                         bgcolor: 'background.paper',
                       },
                     }}
+                    onPointerDown={e => e.stopPropagation()}
+                    onMouseDown={e => e.stopPropagation()}
+                    onTouchStart={e => e.stopPropagation()}
                     onChange={e => setValue(e.target.value)}
                   />
                   <Button
@@ -263,14 +348,14 @@ const TreeItem = React.forwardRef<
                     onClick={e => {
                       e.stopPropagation();
                       if (item.name) {
-                        updateNode({
+                        putApiV1NodeDetail({
                           id: item.id,
                           kb_id: id,
                           name: value,
                           emoji,
                         }).then(() => {
-                          Message.success('更新成功');
-                          const temp = [...items];
+                          message.success('更新成功');
+                          const temp = [...data];
                           updateTree(temp, item.id, {
                             ...item,
                             name: value,
@@ -279,23 +364,24 @@ const TreeItem = React.forwardRef<
                             status: item.name === value ? item.status : 1,
                             updated_at: dayjs().toString(),
                           });
-                          setItems(temp);
+                          updateData?.(temp);
                         });
                       } else {
                         if (value === '') {
-                          Message.error('文档名称不能为空');
+                          message.error('文档名称不能为空');
                           return;
                         }
-                        createNode({
+                        postApiV1Node({
                           name: value,
                           content: '',
                           kb_id: id,
                           parent_id: item.parentId,
                           type: item.type,
                           emoji,
+                          content_type: item.content_type,
                         }).then(res => {
-                          Message.success('创建成功');
-                          const temp = [...items];
+                          message.success('创建成功');
+                          const temp = [...data];
                           const newItem = {
                             ...item,
                             id: res.id,
@@ -308,8 +394,11 @@ const TreeItem = React.forwardRef<
                             newItem.children = [];
                           }
                           updateTree(temp, item.id, newItem);
-                          setItems(temp);
-                          refresh?.();
+                          updateData?.(temp);
+                          // 滚动到保存后的项
+                          setTimeout(() => {
+                            scrollToItem?.(res.id);
+                          }, 100);
                         });
                       }
                     }}
@@ -324,12 +413,11 @@ const TreeItem = React.forwardRef<
                       if (!item.name) {
                         removeItem(item.id);
                       } else {
-                        const temp = [...items];
+                        const temp = [...data];
                         updateTree(temp, item.id, {
                           ...item,
                           isEditting: false,
                         });
-                        setItems(temp);
                       }
                     }}
                   >
@@ -359,22 +447,22 @@ const TreeItem = React.forwardRef<
                       value={item.emoji}
                       onChange={async value => {
                         try {
-                          await updateNode({
+                          await putApiV1NodeDetail({
                             id: item.id,
                             kb_id: id,
                             emoji: value,
                           });
-                          Message.success('更新成功');
-                          const temp = [...items];
+                          message.success('更新成功');
+                          const temp = [...data];
                           updateTree(temp, item.id, {
                             ...item,
                             updated_at: dayjs().toString(),
                             status: 1,
                             emoji: value,
                           });
-                          setItems(temp);
+                          updateData?.(temp);
                         } catch (error) {
-                          Message.error('更新失败');
+                          message.error('更新失败');
                         }
                       }}
                     />
@@ -384,7 +472,31 @@ const TreeItem = React.forwardRef<
                       {item.name}
                     </Ellipsis>
                   ) : (
-                    <Box>{item.name}</Box>
+                    <>
+                      <Box>
+                        {item.name}
+                        {item.content_type === 'md' && (
+                          <Box
+                            component={'span'}
+                            sx={{
+                              fontSize: 10,
+                              color: 'white',
+                              background:
+                                'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                              px: 1,
+                              ml: 1,
+                              fontWeight: '500',
+                              borderRadius: '4px',
+                              height: '14px',
+                              lineHeight: '14px',
+                              display: 'inline-block',
+                            }}
+                          >
+                            MD
+                          </Box>
+                        )}
+                      </Box>
+                    </>
                   )}
                 </Stack>
               )}
@@ -410,57 +522,72 @@ const TreeItem = React.forwardRef<
                       gap={1}
                       sx={{ flexShrink: 0, fontSize: 12 }}
                     >
-                      {item.status === 1 && (
-                        <Box
-                          sx={{
-                            color: 'error.main',
-                            border: '1px solid',
-                            borderColor: 'error.main',
-                            borderRadius: '10px',
-                            px: 1,
-                            bgcolor: addOpacityToColor(
-                              theme.palette.error.main,
-                              0.1,
-                            ),
-                          }}
-                        >
-                          更新未发布
-                        </Box>
+                      {item.type === 2 && item.rag_status && (
+                        <Tooltip title={item.rag_message}>
+                          <StyledTag
+                            color={RAG_SOURCES[item.rag_status].color as any}
+                          >
+                            {RAG_SOURCES[item.rag_status].name}
+                          </StyledTag>
+                        </Tooltip>
                       )}
-                      {item.type === 2 &&
-                        (item.visibility === 1 ? (
-                          <Box
-                            sx={{
-                              color: 'warning.main',
-                              border: '1px solid',
-                              borderColor: 'warning.main',
-                              borderRadius: '10px',
-                              px: 1,
-                              bgcolor: addOpacityToColor(
-                                theme.palette.warning.main,
-                                0.1,
-                              ),
-                            }}
-                          >
-                            私有
-                          </Box>
-                        ) : (
-                          <Box
-                            sx={{
-                              color: 'success.main',
-                              border: '1px solid',
-                              borderColor: 'success.main',
-                              borderRadius: '10px',
-                              px: 1,
-                              bgcolor: addOpacityToColor(
-                                theme.palette.success.main,
-                                0.1,
-                              ),
-                            }}
-                          >
-                            公开
-                          </Box>
-                        ))}
+                      {item.status === 1 && (
+                        <StyledTag color='error'>更新未发布</StyledTag>
+                      )}
+                      {item.type === 2 && (
+                        <>
+                          {permissions?.answerable &&
+                            ANSWERABLE_PERMISSIONS_MAP[
+                              permissions.answerable
+                            ] && (
+                              <StyledTag
+                                color={
+                                  ANSWERABLE_PERMISSIONS_MAP[
+                                    permissions.answerable
+                                  ].color
+                                }
+                              >
+                                {
+                                  ANSWERABLE_PERMISSIONS_MAP[
+                                    permissions.answerable
+                                  ].label
+                                }
+                              </StyledTag>
+                            )}
+                          {permissions?.visitable &&
+                            VISITABLE_PERMISSIONS_MAP[
+                              permissions.visitable
+                            ] && (
+                              <StyledTag
+                                color={
+                                  VISITABLE_PERMISSIONS_MAP[
+                                    permissions.visitable
+                                  ].color
+                                }
+                              >
+                                {
+                                  VISITABLE_PERMISSIONS_MAP[
+                                    permissions.visitable
+                                  ].label
+                                }
+                              </StyledTag>
+                            )}
+                          {permissions?.visible &&
+                            VISIBLE_PERMISSIONS_MAP[permissions.visible] && (
+                              <StyledTag
+                                color={
+                                  VISIBLE_PERMISSIONS_MAP[permissions.visible]
+                                    .color
+                                }
+                              >
+                                {
+                                  VISIBLE_PERMISSIONS_MAP[permissions.visible]
+                                    .label
+                                }
+                              </StyledTag>
+                            )}
+                        </>
+                      )}
                     </Stack>
                     <Box
                       sx={{
@@ -480,7 +607,7 @@ const TreeItem = React.forwardRef<
                 </>
               )}
             </Stack>
-          </SimpleTreeItemWrapper>
+          </TreeItemWrapper>
         </Box>
       </Stack>
     </Box>

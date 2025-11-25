@@ -1,11 +1,11 @@
-import { TocItem, TocList } from "@yu-cq/tiptap";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { TocItem, TocList } from '@ctzhian/tiptap';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-const useScroll = (headings: TocList) => {
-  const [activeHeading, setActiveHeading] = useState<TocItem | null>(null)
-  const isFirstLoad = useRef(true)
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const isManualScroll = useRef(false)
+const useScroll = (headings: TocList, domId: string) => {
+  const [activeHeading, setActiveHeading] = useState<TocItem | null>(null);
+  const isFirstLoad = useRef(true);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isManualScroll = useRef(false);
 
   const debounce = <T extends (...args: any[]) => any>(
     func: T,
@@ -19,47 +19,58 @@ const useScroll = (headings: TocList) => {
     };
   };
 
-  const scrollToElement = useCallback((elementId: string, offset = 80) => {
-    const element = document.getElementById(elementId)
-    if (element) {
-      const targetHeading = headings.find(h => h.id === elementId)
-      if (targetHeading) {
-        isManualScroll.current = true
-        setActiveHeading(targetHeading)
-        location.hash = encodeURIComponent(targetHeading.textContent)
+  const scrollToElement = useCallback(
+    (elementId: string, offset = 80) => {
+      const element = document.getElementById(elementId);
+      if (element) {
+        const container = document.getElementById(domId) || window;
+        const targetHeading = headings.find(h => h.id === elementId);
+        if (targetHeading) {
+          isManualScroll.current = true;
+          setActiveHeading(targetHeading);
+          location.hash = encodeURIComponent(targetHeading.textContent);
 
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.scrollY - offset;
+          const elementPosition = element.getBoundingClientRect().top;
+          const scrollTop =
+            'scrollY' in container ? container.scrollY : container.scrollTop;
+          const offsetPosition = elementPosition + scrollTop - offset;
 
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth',
-        });
+          container.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth',
+          });
 
-        setTimeout(() => {
-          isManualScroll.current = false;
-        }, 1000);
+          setTimeout(() => {
+            isManualScroll.current = false;
+          }, 1000);
+        }
       }
-    }
-  },
+    },
     [headings],
   );
 
   const findActiveHeading = useCallback(() => {
-    const levels = Array.from(new Set(headings.map(it => it.level).sort((a, b) => a - b))).slice(0, 3)
-    const visibleHeadings = headings.filter(header => levels.includes(header.level))
+    const levels = Array.from(
+      new Set(headings.map(it => it.level).sort((a, b) => a - b)),
+    ).slice(0, 3);
+    const visibleHeadings = headings.filter(header =>
+      levels.includes(header.level),
+    );
 
     if (visibleHeadings.length === 0) return null;
 
-    const offset = 100
-    let activeHeader: TocItem | null = null
+    const offset = 100;
+    let activeHeader: TocItem | null = null;
 
     for (let i = visibleHeadings.length - 1; i >= 0; i--) {
       const header = visibleHeadings[i];
       const element = document.getElementById(header.id);
       if (element) {
-        const elementTop = element.getBoundingClientRect().top + window.scrollY;
-        if (elementTop <= window.scrollY + offset) {
+        const container = document.getElementById(domId) || window;
+        const scrollTop =
+          'scrollY' in container ? container.scrollY : container.scrollTop;
+        const elementTop = element.getBoundingClientRect().top + scrollTop;
+        if (elementTop <= scrollTop + offset) {
           activeHeader = header;
           break;
         }
@@ -76,7 +87,6 @@ const useScroll = (headings: TocList) => {
   const debouncedScrollHandler = useCallback(
     debounce(() => {
       if (isManualScroll.current) return;
-
       const activeHeader = findActiveHeading();
       if (activeHeader && activeHeader.id !== activeHeading?.id) {
         setActiveHeading(activeHeader);
@@ -89,17 +99,24 @@ const useScroll = (headings: TocList) => {
     if (isFirstLoad.current && headings.length > 0) {
       const hash = decodeURIComponent(location.hash).slice(1);
       if (hash) {
-        const targetHeading = headings.find(header => header.textContent === hash)
+        const targetHeading = headings.find(
+          header => header.textContent === hash,
+        );
         if (targetHeading) {
           setActiveHeading(targetHeading);
           setTimeout(() => {
             isManualScroll.current = true;
             const element = document.getElementById(targetHeading.id);
             if (element) {
+              const container = document.getElementById(domId) || window;
               const elementPosition = element.getBoundingClientRect().top;
-              const offsetPosition = elementPosition + window.scrollY - 80;
+              const scrollTop =
+                'scrollY' in container
+                  ? container.scrollY
+                  : container.scrollTop;
+              const offsetPosition = elementPosition + scrollTop - 80;
 
-              window.scrollTo({
+              container.scrollTo({
                 top: offsetPosition,
                 behavior: 'smooth',
               });
@@ -123,15 +140,16 @@ const useScroll = (headings: TocList) => {
 
   useEffect(() => {
     if (headings.length === 0) return;
-    window.addEventListener('scroll', debouncedScrollHandler);
+    const container = document.getElementById(domId) || window;
+    container.addEventListener('scroll', debouncedScrollHandler);
     debouncedScrollHandler();
     return () => {
-      window.removeEventListener('scroll', debouncedScrollHandler);
+      container.removeEventListener('scroll', debouncedScrollHandler);
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [debouncedScrollHandler, headings]);
+  }, [debouncedScrollHandler, headings, domId]);
 
   return {
     activeHeading,

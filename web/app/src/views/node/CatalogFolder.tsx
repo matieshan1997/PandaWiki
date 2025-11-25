@@ -1,133 +1,141 @@
 import { ITreeItem } from '@/assets/type';
-import { IconArrowDown, IconFile, IconFolder } from '@/components/icons';
+import { IconXiajiantou, IconWenjianjia, IconWenjian } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
-import { highlightText } from '@/utils';
-import { Box, Stack } from '@mui/material';
-import { Ellipsis } from 'ct-mui';
+import { addOpacityToColor } from '@/utils';
+import { Ellipsis } from '@ctzhian/ui';
+import { Box, Stack, useTheme, IconButton } from '@mui/material';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 
 interface CatalogFolderProps {
-  id?: string;
   item: ITreeItem;
   depth?: number;
-  setId?: (id: string) => void;
   searchTerm?: string;
 }
 
 const CatalogFolder = ({
-  id: activeId,
   item,
   depth = 1,
-  setId,
   searchTerm = '',
 }: CatalogFolderProps) => {
-  const [isExpanded, setIsExpanded] = useState(item.defaultExpand ?? true);
-  const { themeMode = 'light' } = useStore();
-
-  useEffect(() => {
-    setIsExpanded(item.defaultExpand ?? true);
-  }, [item]);
+  const theme = useTheme();
+  const { themeMode = 'light', setTree } = useStore();
+  const params = useParams() || {};
+  const activeId = params.id as string;
 
   return (
-    <Box key={item.id}>
-      <Box
+    <Stack key={item.id} gap={0.5}>
+      <Stack
+        direction='row'
+        alignItems='center'
+        justifyContent='space-between'
+        gap={0.5}
         sx={{
           position: 'relative',
-          lineHeight: '36px',
+          lineHeight: '40px',
           cursor: 'pointer',
           borderRadius: '10px',
-          color: activeId === item.id ? 'primary.main' : 'inherit',
+          color: activeId === item.id ? 'primary.main' : 'text.primary',
+          bgcolor:
+            activeId === item.id
+              ? addOpacityToColor(theme.palette.primary.main, 0.08)
+              : 'transparent',
+          transition: 'all 0.2s ease-in-out',
           '&:hover': {
-            bgcolor: themeMode === 'dark' ? '#394052' : 'background.paper2',
+            color: activeId === item.id ? 'primary.main' : 'text.primary',
+            bgcolor:
+              activeId === item.id
+                ? addOpacityToColor(theme.palette.primary.main, 0.08)
+                : themeMode === 'dark'
+                  ? '#394052'
+                  : 'background.paper3',
           },
         }}
-        onClick={() => {
-          if (item.type === 1) {
-            setIsExpanded(!isExpanded);
-            return;
-          }
-          if (item.type === 2 && setId) {
-            setId(item.id);
-            window.history.pushState(null, '', `/node/${item.id}`);
-            return;
-          }
-        }}
+        id={`catalog-item-${item.id}`}
       >
-        {item.type === 1 && (
-          <Box
-            sx={{
-              position: 'absolute',
-              left: (2 * depth - 1) * 8,
-              top: 4,
-              color: 'text.disabled',
-            }}
-          >
-            <IconArrowDown
-              sx={{
-                fontSize: 16,
-                transform: isExpanded ? 'none' : 'rotate(-90deg)',
-                transition: 'transform 0.2s',
-              }}
-            />
+        {item.type === 2 ? (
+          <Box sx={{ flex: 1 }}>
+            <Link href={`/node/${item.id}`} prefetch={false}>
+              <Box sx={{ pl: depth * 2, pr: 1 }}>
+                <Stack direction='row' alignItems='center' gap={1}>
+                  {item.emoji ? (
+                    <Box sx={{ flexShrink: 0, fontSize: 14 }}>{item.emoji}</Box>
+                  ) : (
+                    <IconWenjian sx={{ flexShrink: 0, fontSize: 12 }} />
+                  )}
+                  <Ellipsis sx={{ flex: 1, width: 0, pr: 1 }}>
+                    {item.name}
+                  </Ellipsis>
+                </Stack>
+              </Box>
+            </Link>
           </Box>
-        )}
-        {item.type === 2 && setId && (
-          <Link
-            href={`/node/${item.id}`}
-            prefetch={false}
-            style={{ display: 'none' }}
+        ) : (
+          <Stack
+            direction='row'
+            alignItems='center'
+            justifyContent={'space-between'}
+            sx={{ flex: 1, pl: depth * 2, pr: 1 }}
           >
-            {highlightText(item.name, searchTerm)}
-          </Link>
-        )}
-        {!setId && item.type === 2 ? (
-          <Link href={`/node/${item.id}`} prefetch={false}>
-            <Box sx={{ pl: (depth + 0.5) * 2 }}>
-              <Stack direction='row' alignItems='center' gap={0.5}>
+            <Link
+              href={`/node/${item.id}`}
+              prefetch={false}
+              style={{ flex: 1 }}
+            >
+              <Stack
+                direction='row'
+                alignItems='center'
+                gap={1}
+                sx={{ flex: 1 }}
+              >
                 {item.emoji ? (
                   <Box sx={{ flexShrink: 0, fontSize: 12 }}>{item.emoji}</Box>
+                ) : item.type === 1 ? (
+                  <IconWenjianjia sx={{ flexShrink: 0, fontSize: 12 }} />
                 ) : (
-                  <IconFile sx={{ flexShrink: 0, fontSize: 12 }} />
+                  <IconWenjian sx={{ flexShrink: 0, fontSize: 12 }} />
                 )}
                 <Ellipsis sx={{ flex: 1, width: 0, pr: 1 }}>
-                  {highlightText(item.name, searchTerm)}
+                  {item.name}
                 </Ellipsis>
               </Stack>
-            </Box>
-          </Link>
-        ) : (
-          <Box sx={{ pl: (depth + 0.5) * 2 }}>
-            <Stack direction='row' alignItems='center' gap={0.5}>
-              {item.emoji ? (
-                <Box sx={{ flexShrink: 0, fontSize: 12 }}>{item.emoji}</Box>
-              ) : item.type === 1 ? (
-                <IconFolder sx={{ flexShrink: 0, fontSize: 12 }} />
-              ) : (
-                <IconFile sx={{ flexShrink: 0, fontSize: 12 }} />
-              )}
-              <Ellipsis sx={{ flex: 1, width: 0, pr: 1 }}>
-                {highlightText(item.name, searchTerm)}
-              </Ellipsis>
-            </Stack>
-          </Box>
+            </Link>
+
+            <IconButton
+              size='small'
+              sx={{
+                '&:hover': {
+                  color: 'primary.main',
+                },
+              }}
+              onClick={() => {
+                if (item.type === 1) {
+                  item.expanded = !item.expanded;
+                  setTree?.(tree => [...(tree || [])]);
+                  return;
+                }
+              }}
+            >
+              <IconXiajiantou
+                sx={{
+                  flexShrink: 0,
+                  fontSize: 16,
+                  transform: item.expanded ? 'none' : 'rotate(-90deg)',
+                  transition: 'transform 0.2s',
+                }}
+              />
+            </IconButton>
+          </Stack>
         )}
-      </Box>
-      {item.children && item.children.length > 0 && isExpanded && (
-        <>
+      </Stack>
+      {item.children && item.children.length > 0 && item.expanded && (
+        <Stack gap={0.5}>
           {item.children.map(child => (
-            <CatalogFolder
-              id={activeId}
-              key={child.id}
-              depth={depth + 1}
-              item={child}
-              setId={setId}
-              searchTerm={searchTerm}
-            />
+            <CatalogFolder key={child.id} depth={depth + 1} item={child} />
           ))}
-        </>
+        </Stack>
       )}
-    </Box>
+    </Stack>
   );
 };
 

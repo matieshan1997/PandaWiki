@@ -9,6 +9,7 @@ interface SSEClientOptions {
   onError?: SSEErrorCallback;
   onCancel?: SSEErrorCallback;
   onComplete?: SSECompleteCallback;
+  method?: string;
 }
 
 class SSEClient<T> {
@@ -27,7 +28,14 @@ class SSEClient<T> {
   public subscribe(body: BodyInit, onMessage: SSECallback<T>) {
     this.controller.abort();
     this.controller = new AbortController();
-    const { url, headers, onOpen, onError, onComplete } = this.options;
+    const {
+      url,
+      headers,
+      onOpen,
+      onError,
+      onComplete,
+      method = 'POST',
+    } = this.options;
 
     const timeoutDuration = 300000;
     const timeoutId = setTimeout(() => {
@@ -35,14 +43,21 @@ class SSEClient<T> {
       onError?.(new Error('Request timed out after 5 minutes'));
     }, timeoutDuration);
 
+    const upperMethod = method.toUpperCase();
+    const hasBody =
+      upperMethod !== 'GET' &&
+      upperMethod !== 'HEAD' &&
+      body !== undefined &&
+      body !== null;
+
     fetch(url, {
-      method: 'POST',
+      method,
       headers: {
-        'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
         ...headers,
       },
-      body,
+      body: hasBody ? body : undefined,
       signal: this.controller.signal,
     })
       .then(async response => {
@@ -66,7 +81,6 @@ class SSEClient<T> {
             onComplete?.();
             break;
           }
-
           this.processChunk(value, onMessage);
         }
       })
@@ -86,7 +100,6 @@ class SSEClient<T> {
 
     this.buffer += this.textDecoder.decode(chunk, { stream: true });
     const lines = this.buffer.split('\n');
-
     let currentData = '';
     let isDataLine = false;
 

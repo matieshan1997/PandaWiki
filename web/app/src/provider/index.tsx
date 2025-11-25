@@ -1,57 +1,74 @@
 'use client';
 
-import { KBDetail, NodeListItem, WidgetInfo } from '@/assets/type';
+import { ITreeItem, KBDetail, NodeListItem, WidgetInfo } from '@/assets/type';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  Dispatch,
+  SetStateAction,
+} from 'react';
+import { GithubComChaitinPandaWikiProApiShareV1AuthInfoResp } from '@/request/pro/types';
 
 interface StoreContextType {
+  authInfo?: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp;
   widget?: WidgetInfo;
   kbDetail?: KBDetail;
   catalogShow?: boolean;
+  tree?: ITreeItem[];
   themeMode?: 'light' | 'dark';
   mobile?: boolean;
   nodeList?: NodeListItem[];
   setNodeList?: (list: NodeListItem[]) => void;
+  setTree?: Dispatch<SetStateAction<ITreeItem[] | undefined>>;
   setCatalogShow?: (value: boolean) => void;
   catalogWidth?: number;
   setCatalogWidth?: (value: number) => void;
+  qaModalOpen?: boolean;
+  setQaModalOpen?: (value: boolean) => void;
 }
 
-export const StoreContext = createContext<StoreContextType>({
-  widget: undefined,
-  kbDetail: undefined,
-  catalogShow: undefined,
-  themeMode: 'light',
-  mobile: false,
-  nodeList: undefined,
-  setNodeList: () => {},
-  setCatalogShow: () => {},
-});
+export const StoreContext = createContext<StoreContextType | undefined>(
+  undefined,
+);
 
-export const useStore = () => useContext(StoreContext);
+export const useStore = () => {
+  const context = useContext(StoreContext);
+  if (!context) {
+    throw new Error('useStore must be used within a StoreProvider');
+  }
+  return context;
+};
 
 export default function StoreProvider({
   children,
   ...props
 }: StoreContextType & { children: React.ReactNode }) {
-  const context = useStore();
-
+  const context = useContext(StoreContext) || {};
   const {
     widget = context.widget,
     kbDetail = context.kbDetail,
     themeMode = context.themeMode,
     nodeList: initialNodeList = context.nodeList || [],
     mobile = context.mobile,
+    authInfo = context.authInfo,
+    tree: initialTree = context.tree || [],
   } = props;
 
   const catalogSettings = kbDetail?.settings?.catalog_settings;
+
   const [catalogWidth, setCatalogWidth] = useState<number>(() => {
     return catalogSettings?.catalog_width || 260;
   });
   const [nodeList, setNodeList] = useState<NodeListItem[] | undefined>(
     initialNodeList,
   );
+  const [tree, setTree] = useState<ITreeItem[] | undefined>(initialTree);
+  const [qaModalOpen, setQaModalOpen] = useState(false);
+
   const [catalogShow, setCatalogShow] = useState(
     catalogSettings?.catalog_visible !== 2,
   );
@@ -86,12 +103,17 @@ export default function StoreProvider({
         catalogShow,
         setCatalogShow,
         mobile: isMobile,
+        authInfo,
         setNodeList,
         catalogWidth,
+        tree,
+        setTree,
         setCatalogWidth: value => {
           setCatalogWidth(value);
           window.localStorage.setItem('CATALOG_WIDTH', value.toString());
         },
+        qaModalOpen,
+        setQaModalOpen,
       }}
     >
       {children}

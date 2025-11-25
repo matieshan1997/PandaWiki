@@ -3,24 +3,29 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	modelkit "github.com/chaitin/ModelKit/usecase"
+	modelkit "github.com/chaitin/ModelKit/v2/usecase"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
+	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
 )
 
 type CreationUsecase struct {
-	llm    *LLMUsecase
-	model  *ModelUsecase
-	logger *log.Logger
+	llm      *LLMUsecase
+	model    *ModelUsecase
+	logger   *log.Logger
+	modelkit *modelkit.ModelKit
 }
 
 func NewCreationUsecase(logger *log.Logger, llm *LLMUsecase, model *ModelUsecase) *CreationUsecase {
+	modelkit := modelkit.NewModelKit(logger.Logger)
 	return &CreationUsecase{
-		llm:    llm,
-		model:  model,
-		logger: logger.WithModule("usecase.creation"),
+		llm:      llm,
+		model:    model,
+		logger:   logger.WithModule("usecase.creation"),
+		modelkit: modelkit,
 	}
 }
 
@@ -35,7 +40,7 @@ func (u *CreationUsecase) TextCreation(ctx context.Context, req *domain.TextReq,
 	if err != nil {
 		return fmt.Errorf("failed to convert model to modelkit model: %w", err)
 	}
-	chatModel, err := modelkit.GetChatModel(ctx, modelkitModel)
+	chatModel, err := u.modelkit.GetChatModel(ctx, modelkitModel)
 	if err != nil {
 		return fmt.Errorf("get chat model failed: %w", err)
 	}
@@ -74,4 +79,54 @@ func (u *CreationUsecase) TextCreation(ctx context.Context, req *domain.TextReq,
 		return fmt.Errorf("chat with llm failed: %w", err)
 	}
 	return nil
+}
+
+func (u *CreationUsecase) TabComplete(ctx context.Context, req *domain.CompleteReq) (string, error) {
+	// For FIM (Fill in Middle) style completion, we need to handle prefix and suffix
+	if req.Prefix != "" || req.Suffix != "" {
+		model, err := u.model.GetChatModel(ctx)
+		if err != nil {
+			u.logger.Error("get chat model failed", log.Error(err))
+			return "", domain.ErrModelNotConfigured
+		}
+
+		modelkitModel, err := model.ToModelkitModel()
+		if err != nil {
+			return "", fmt.Errorf("failed to convert model to modelkit model: %w", err)
+		}
+		chatModel, err := u.modelkit.GetChatModel(ctx, modelkitModel)
+		if err != nil {
+			return "", fmt.Errorf("get chat model failed: %w", err)
+		}
+
+		template := prompt.FromMessages(schema.GoTemplate,
+			schema.SystemMessage(domain.NodeFIMSystemPrompt),
+			schema.UserMessage(domain.NodeFIMFormatter),
+		)
+
+		messages, err := template.Format(ctx, map[string]any{
+			"Prefix": req.Prefix,
+			"Suffix": req.Suffix,
+		})
+		if err != nil {
+			return "", fmt.Errorf("failed to format message: %w", err)
+		}
+
+		// For FIM-style completion, we collect the response in a string instead of streaming
+		var result strings.Builder
+		onChunk := func(ctx context.Context, dataType, chunk string) error {
+			result.WriteString(chunk)
+			return nil
+		}
+
+		usage := &schema.TokenUsage{}
+		err = u.llm.ChatWithAgent(ctx, chatModel, messages, usage, onChunk)
+		if err != nil {
+			return "", fmt.Errorf("chat with llm failed: %w", err)
+		}
+
+		completion := result.String()
+		return completion, nil
+	}
+	return "", nil
 }

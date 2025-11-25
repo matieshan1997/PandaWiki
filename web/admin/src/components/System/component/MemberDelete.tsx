@@ -3,13 +3,14 @@ import { deleteApiV1UserDelete } from '@/request/User';
 import Card from '@/components/Card';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { Box, Stack } from '@mui/material';
-import { Ellipsis, Message, Modal } from 'ct-mui';
+import { Ellipsis, message, Modal } from '@ctzhian/ui';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { V1UserListItemResp } from '@/request/types';
 
 interface MemberDeleteProps {
   open: boolean;
   onClose: () => void;
-  user: UserInfo | null;
+  user: V1UserListItemResp | null;
   refresh: () => void;
 }
 
@@ -17,7 +18,7 @@ const MemberDelete = ({ open, onClose, user, refresh }: MemberDeleteProps) => {
   const submit = () => {
     if (!user?.id) return;
     deleteApiV1UserDelete({ user_id: user.id }).then(() => {
-      Message.success('删除成功');
+      message.success('删除成功');
       refresh();
       onClose();
     });
@@ -43,7 +44,7 @@ const MemberDelete = ({ open, onClose, user, refresh }: MemberDeleteProps) => {
         sx={{
           fontSize: 14,
           p: 1,
-          bgcolor: 'background.paper2',
+          bgcolor: 'background.paper3',
         }}
       >
         <Stack

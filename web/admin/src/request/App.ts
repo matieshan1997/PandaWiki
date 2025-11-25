@@ -14,9 +14,11 @@ import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DeleteApiV1AppParams,
   DomainAppDetailResp,
+  DomainPWResponse,
   DomainResponse,
   DomainUpdateAppReq,
   GetApiV1AppDetailParams,
+  PutApiV1AppParams,
 } from "./types";
 
 /**
@@ -26,17 +28,21 @@ import {
  * @name PutApiV1App
  * @summary Update app
  * @request PUT:/api/v1/app
+ * @secure
  * @response `200` `DomainResponse` OK
  */
 
 export const putApiV1App = (
+  query: PutApiV1AppParams,
   app: DomainUpdateAppReq,
   params: RequestParams = {},
 ) =>
   httpRequest<DomainResponse>({
     path: `/api/v1/app`,
     method: "PUT",
+    query: query,
     body: app,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,
@@ -49,6 +55,7 @@ export const putApiV1App = (
  * @name DeleteApiV1App
  * @summary Delete app
  * @request DELETE:/api/v1/app
+ * @secure
  * @response `200` `DomainResponse` OK
  */
 
@@ -60,6 +67,7 @@ export const deleteApiV1App = (
     path: `/api/v1/app`,
     method: "DELETE",
     query: query,
+    secure: true,
     type: ContentType.Json,
     ...params,
   });
@@ -71,7 +79,8 @@ export const deleteApiV1App = (
  * @name GetApiV1AppDetail
  * @summary Get app detail
  * @request GET:/api/v1/app/detail
- * @response `200` `(DomainResponse & {
+ * @secure
+ * @response `200` `(DomainPWResponse & {
     data?: DomainAppDetailResp,
 
 })` OK
@@ -82,13 +91,14 @@ export const getApiV1AppDetail = (
   params: RequestParams = {},
 ) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: DomainAppDetailResp;
     }
   >({
     path: `/api/v1/app/detail`,
     method: "GET",
     query: query,
+    secure: true,
     type: ContentType.Json,
     format: "json",
     ...params,

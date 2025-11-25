@@ -5,9 +5,16 @@ import Avatar from '@/components/Avatar';
 import Card from '@/components/Card';
 import { useURLSearchParams } from '@/hooks';
 import { Box, Button, IconButton, Stack, TextField } from '@mui/material';
-import { Icon, Message } from 'ct-mui';
+import { Icon, message } from '@ctzhian/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  IconZhanghao,
+  IconIcon_tool_close,
+  IconMima,
+  IconKejian,
+  IconBukejian,
+} from '@panda-wiki/icons';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,7 +30,7 @@ const Login = () => {
       .then(res => {
         localStorage.setItem('panda_wiki_token', res.token!);
         navigate(redirect);
-        Message.success('登录成功');
+        message.success('登录成功');
       })
       .finally(() => {
         setLoading(false);
@@ -72,7 +79,7 @@ const Login = () => {
               gap={1}
               sx={{
                 fontSize: 28,
-                fontFamily: 'Gbold',
+                fontWeight: 700,
                 color: 'text.primary',
                 mb: 4,
               }}
@@ -90,10 +97,7 @@ const Login = () => {
               slotProps={{
                 input: {
                   startAdornment: (
-                    <Icon
-                      type='icon-zhanghao'
-                      sx={{ fontSize: 16, mr: 2, flexShrink: 0 }}
-                    />
+                    <IconZhanghao sx={{ fontSize: 16, mr: 2, flexShrink: 0 }} />
                   ),
                   endAdornment: account ? (
                     <IconButton
@@ -101,9 +105,8 @@ const Login = () => {
                       size='small'
                       tabIndex={-1}
                     >
-                      <Icon
-                        type='icon-icon_tool_close'
-                        sx={{ fontSize: 14, color: 'text.auxiliary' }}
+                      <IconIcon_tool_close
+                        sx={{ fontSize: 14, color: 'text.tertiary' }}
                       />
                     </IconButton>
                   ) : null,
@@ -128,35 +131,32 @@ const Login = () => {
               slotProps={{
                 input: {
                   startAdornment: (
-                    <Icon
-                      type='icon-mima'
-                      sx={{ fontSize: 16, mr: 2, flexShrink: 0 }}
-                    />
+                    <IconMima sx={{ fontSize: 16, mr: 2, flexShrink: 0 }} />
                   ),
                   endAdornment: password ? (
-                    <Stack
-                      direction={'row'}
-                      alignItems={'center'}
-                      sx={{ mr: '14px' }}
-                    >
+                    <Stack direction={'row'} alignItems={'center'}>
                       <IconButton
                         onClick={() => setSee(!see)}
                         size='small'
                         tabIndex={-1}
                       >
-                        <Icon
-                          type={see ? 'icon-kejian' : 'icon-bukejian'}
-                          sx={{ fontSize: 18, color: 'text.auxiliary' }}
-                        />
+                        {see ? (
+                          <IconKejian
+                            sx={{ fontSize: 18, color: 'text.tertiary' }}
+                          />
+                        ) : (
+                          <IconBukejian
+                            sx={{ fontSize: 18, color: 'text.tertiary' }}
+                          />
+                        )}
                       </IconButton>
                       <IconButton
                         onClick={() => setPassword('')}
                         size='small'
                         tabIndex={-1}
                       >
-                        <Icon
-                          type='icon-icon_tool_close'
-                          sx={{ fontSize: 14, color: 'text.auxiliary' }}
+                        <IconIcon_tool_close
+                          sx={{ fontSize: 14, color: 'text.tertiary' }}
                         />
                       </IconButton>
                     </Stack>

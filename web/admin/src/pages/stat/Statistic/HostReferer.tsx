@@ -1,21 +1,23 @@
-import { RefererHostItem, statRefererHosts } from '@/api';
+import { getApiV1StatRefererHosts } from '@/request/Stat';
 import Nodata from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import { useAppSelector } from '@/store';
 import { Box, Stack } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { ActiveTab, TimeList } from '.';
+import { DomainHotRefererHost } from '@/request/types';
 
 const HostReferer = ({ tab }: { tab: ActiveTab }) => {
   const { kb_id = '' } = useAppSelector(state => state.config);
-  const [list, setList] = useState<RefererHostItem[]>([]);
+  const [list, setList] = useState<DomainHotRefererHost[]>([]);
   const [max, setMax] = useState(0);
 
   useEffect(() => {
-    statRefererHosts({ kb_id }).then(res => {
-      const data = res.sort((a, b) => b.count - a.count).slice(0, 7);
+    if (!kb_id) return;
+    getApiV1StatRefererHosts({ kb_id, day: tab }).then(res => {
+      const data = res.sort((a, b) => b.count! - a.count!).slice(0, 7);
       setList(data);
-      setMax(Math.max(...data.map(item => item.count)));
+      setMax(Math.max(...data.map(item => item.count!)));
     });
   }, [tab, kb_id]);
 
@@ -34,7 +36,7 @@ const HostReferer = ({ tab }: { tab: ActiveTab }) => {
         sx={{ mb: 2 }}
       >
         <Box sx={{ fontSize: 16, fontWeight: 'bold' }}>来源域名</Box>
-        <Box sx={{ fontSize: 12, color: 'text.auxiliary' }}>
+        <Box sx={{ fontSize: 12, color: 'text.tertiary' }}>
           {TimeList.find(it => it.value === tab)?.label}
         </Box>
       </Stack>
@@ -48,14 +50,14 @@ const HostReferer = ({ tab }: { tab: ActiveTab }) => {
                 justifyContent={'space-between'}
               >
                 <Box>{it.referer_host || '-'}</Box>
-                <Box sx={{ fontFamily: 'Gbold' }}>{it.count}</Box>
+                <Box sx={{ fontWeight: 700 }}>{it.count}</Box>
               </Stack>
               <Box
                 sx={{
                   height: 6,
                   mt: '6px',
                   borderRadius: '3px',
-                  bgcolor: 'background.paper2',
+                  bgcolor: 'background.paper3',
                 }}
               >
                 <Box
@@ -63,7 +65,7 @@ const HostReferer = ({ tab }: { tab: ActiveTab }) => {
                     height: 6,
                     background:
                       'linear-gradient( 90deg, #3248F2 0%, #9E68FC 100%)',
-                    width: `${(it.count / max) * 100}%`,
+                    width: `${(it.count! / max) * 100}%`,
                     borderRadius: '3px',
                   }}
                 ></Box>
