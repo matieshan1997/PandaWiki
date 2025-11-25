@@ -190,7 +190,7 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun
 			u.logger.Error("wechat GetAppDetailByKBIDAndAppType failed", log.Error(err))
 		}
 
-		var feedback = "\n\n---  \n\n本回答由 PandaWiki 基于 AI 生成，仅供参考。\n[👍 满意](%s) | [👎 不满意](%s)"
+		var feedback = "\n\n---  \n\n本回答由 JCloudWiki 基于 AI 生成，仅供参考。\n[👍 满意](%s) | [👎 不满意](%s)"
 		var likeUrl = "%s/feedback?score=1&message_id=%s"
 		var dislikeUrl = "%s/feedback?score=-1&message_id=%s"
 		var messageId string

@@ -19,7 +19,7 @@ import CardWeb from './component/CardWeb';
 const SettingTabs: { label: string; id: string }[] = [
   { label: '门户网站', id: 'portal-website' },
   { label: 'AI 机器人', id: 'robot' },
-  { label: '问答设置', id: 'ai-setting' },
+  // { label: '问答设置', id: 'ai-setting' },
   { label: '反馈设置', id: 'feedback' },
   { label: '安全设置', id: 'security' },
   { label: '访问控制', id: 'backend-info' },

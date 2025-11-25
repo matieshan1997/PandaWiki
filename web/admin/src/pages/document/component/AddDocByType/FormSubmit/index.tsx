@@ -200,20 +200,20 @@ const FormSubmit = ({
         justifyContent='space-between'
         sx={{ mt: 2 }}
       >
-        {TYPE_CONFIG[type].usage && (
-          <Button
-            component='a'
-            href={TYPE_CONFIG[type].usage}
-            target='_blank'
-            sx={{
-              fontSize: 14,
-              fontWeight: 'normal',
-              color: 'primary.main',
-            }}
-          >
-            使用方法
-          </Button>
-        )}
+        {/*{TYPE_CONFIG[type].usage && (*/}
+        {/*  <Button*/}
+        {/*    component='a'*/}
+        {/*    href={TYPE_CONFIG[type].usage}*/}
+        {/*    target='_blank'*/}
+        {/*    sx={{*/}
+        {/*      fontSize: 14,*/}
+        {/*      fontWeight: 'normal',*/}
+        {/*      color: 'primary.main',*/}
+        {/*    }}*/}
+        {/*  >*/}
+        {/*    使用方法*/}
+        {/*  </Button>*/}
+        {/*)}*/}
         <Button
           variant='contained'
           loading={loading}

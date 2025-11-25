@@ -45,14 +45,14 @@ const MENUS = [
       ConstsUserKBPermission.UserKBPermissionDataOperate,
     ],
   },
-  {
-    label: '贡献',
-    value: '/contribution',
-    pathname: 'contribution',
-    icon: IconGongxian,
-    show: true,
-    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
-  },
+  // {
+  //   label: '贡献',
+  //   value: '/contribution',
+  //   pathname: 'contribution',
+  //   icon: IconGongxian,
+  //   show: true,
+  //   perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
+  // },
   {
     label: '问答',
     value: '/conversation',
@@ -154,7 +154,7 @@ const Sidebar = () => {
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        PandaWiki
+        JCloudWiki
       </Box>
       <Stack sx={{ pt: 2, flexGrow: 1 }} gap={1}>
         {menus.map(it => {
@@ -208,85 +208,85 @@ const Sidebar = () => {
         })}
       </Stack>
       <Stack gap={1} sx={{ flexShrink: 0 }}>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-          startIcon={
-            <IconBangzhuwendang1 sx={{ fontSize: '14px !important' }} />
-          }
-          onClick={() =>
-            window.open('https://pandawiki.docs.baizhi.cloud/', '_blank')
-          }
-        >
-          帮助文档
-        </Button>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            textTransform: 'none',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-          startIcon={<IconGithub sx={{ fontSize: '14px !important' }} />}
-          onClick={() =>
-            window.open('https://github.com/chaitin/PandaWiki', '_blank')
-          }
-        >
-          GitHub
-        </Button>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-          onClick={() => setShowQrcode(true)}
-          startIcon={<IconGroup sx={{ fontSize: '14px !important' }} />}
-        >
-          在线支持
-        </Button>
+        {/*<Button*/}
+        {/*  variant='outlined'*/}
+        {/*  color='dark'*/}
+        {/*  sx={{*/}
+        {/*    fontSize: 14,*/}
+        {/*    flexShrink: 0,*/}
+        {/*    fontWeight: 400,*/}
+        {/*    pr: 1.5,*/}
+        {/*    pl: 1.5,*/}
+        {/*    gap: 0.5,*/}
+        {/*    justifyContent: 'flex-start',*/}
+        {/*    border: `1px solid ${theme.palette.divider}`,*/}
+        {/*    '.MuiButton-startIcon': {*/}
+        {/*      mr: '3px',*/}
+        {/*    },*/}
+        {/*    '&:hover': {*/}
+        {/*      color: 'primary.main',*/}
+        {/*    },*/}
+        {/*  }}*/}
+        {/*  startIcon={*/}
+        {/*    <IconBangzhuwendang1 sx={{ fontSize: '14px !important' }} />*/}
+        {/*  }*/}
+        {/*  onClick={() =>*/}
+        {/*    window.open('https://pandawiki.docs.baizhi.cloud/', '_blank')*/}
+        {/*  }*/}
+        {/*>*/}
+        {/*  帮助文档*/}
+        {/*</Button>*/}
+        {/*<Button*/}
+        {/*  variant='outlined'*/}
+        {/*  color='dark'*/}
+        {/*  sx={{*/}
+        {/*    fontSize: 14,*/}
+        {/*    flexShrink: 0,*/}
+        {/*    fontWeight: 400,*/}
+        {/*    pr: 1.5,*/}
+        {/*    pl: 1.5,*/}
+        {/*    gap: 0.5,*/}
+        {/*    justifyContent: 'flex-start',*/}
+        {/*    textTransform: 'none',*/}
+        {/*    border: `1px solid ${theme.palette.divider}`,*/}
+        {/*    '.MuiButton-startIcon': {*/}
+        {/*      mr: '3px',*/}
+        {/*    },*/}
+        {/*    '&:hover': {*/}
+        {/*      color: 'primary.main',*/}
+        {/*    },*/}
+        {/*  }}*/}
+        {/*  startIcon={<IconGithub sx={{ fontSize: '14px !important' }} />}*/}
+        {/*  onClick={() =>*/}
+        {/*    window.open('https://github.com/chaitin/PandaWiki', '_blank')*/}
+        {/*  }*/}
+        {/*>*/}
+        {/*  GitHub*/}
+        {/*</Button>*/}
+        {/*<Button*/}
+        {/*  variant='outlined'*/}
+        {/*  color='dark'*/}
+        {/*  sx={{*/}
+        {/*    fontSize: 14,*/}
+        {/*    flexShrink: 0,*/}
+        {/*    fontWeight: 400,*/}
+        {/*    pr: 1.5,*/}
+        {/*    pl: 1.5,*/}
+        {/*    gap: 0.5,*/}
+        {/*    justifyContent: 'flex-start',*/}
+        {/*    border: `1px solid ${theme.palette.divider}`,*/}
+        {/*    '.MuiButton-startIcon': {*/}
+        {/*      mr: '3px',*/}
+        {/*    },*/}
+        {/*    '&:hover': {*/}
+        {/*      color: 'primary.main',*/}
+        {/*    },*/}
+        {/*  }}*/}
+        {/*  onClick={() => setShowQrcode(true)}*/}
+        {/*  startIcon={<IconGroup sx={{ fontSize: '14px !important' }} />}*/}
+        {/*>*/}
+        {/*  在线支持*/}
+        {/*</Button>*/}
         <Version />
       </Stack>
       <Modal

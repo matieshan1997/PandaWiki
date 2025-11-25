@@ -91,7 +91,8 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 		return h.NewResponseWithError(c, "ports is required", nil)
 	}
 
-	req.MaxKB = domain.GetBaseEditionLimitation(c.Request().Context()).MaxKb
+	//req.MaxKB = domain.GetBaseEditionLimitation(c.Request().Context()).MaxKb
+	req.MaxKB = 30 // 默认限制为10个知识库
 
 	did, err := h.usecase.CreateKnowledgeBase(c.Request().Context(), &req)
 	if err != nil {

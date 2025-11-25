@@ -157,13 +157,13 @@ const KeywordsForm = ({ kb }: { kb: DomainKnowledgeBaseDetail }) => {
     setIsEdit(false);
   });
 
-  useEffect(() => {
-    if (!kb.id || !BUSINESS_VERSION_PERMISSION.includes(license.edition!))
-      return;
-    getApiProV1Block({ kb_id: kb.id! }).then(res => {
-      setValue('block_words', res.words || []);
-    });
-  }, [kb, license.edition]);
+  // useEffect(() => {
+  //   if (!kb.id || !BUSINESS_VERSION_PERMISSION.includes(license.edition!))
+  //     return;
+  //   getApiProV1Block({ kb_id: kb.id! }).then(res => {
+  //     setValue('block_words', res.words || []);
+  //   });
+  // }, [kb, license.edition]);
 
   return (
     <SettingCardItem title='内容合规' isEdit={isEdit} onSubmit={onSubmit}>

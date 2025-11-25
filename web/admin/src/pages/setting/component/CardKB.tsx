@@ -575,7 +575,7 @@ const CardKB = () => {
         </Box>
       </SettingCardItem>
 
-      <ApiToken />
+      {/* <ApiToken /> */}
 
       <AddRole
         open={addOpen}

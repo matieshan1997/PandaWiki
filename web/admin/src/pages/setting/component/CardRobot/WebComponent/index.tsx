@@ -158,24 +158,24 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
       title='网页挂件机器人'
       isEdit={isEdit}
       onSubmit={onSubmit}
-      more={
-        <Link
-          component='a'
-          href='https://pandawiki.docs.baizhi.cloud/node/0197f335-a1a8-786c-95df-0848f61fb98a'
-          target='_blank'
-          sx={{
-            fontSize: 14,
-            textDecoration: 'none',
-            fontWeight: 'normal',
-            ml: 1,
-            '&:hover': {
-              fontWeight: 'bold',
-            },
-          }}
-        >
-          使用方法
-        </Link>
-      }
+      // more={
+      //   <Link
+      //     component='a'
+      //     href='https://pandawiki.docs.baizhi.cloud/node/0197f335-a1a8-786c-95df-0848f61fb98a'
+      //     target='_blank'
+      //     sx={{
+      //       fontSize: 14,
+      //       textDecoration: 'none',
+      //       fontWeight: 'normal',
+      //       ml: 1,
+      //       '&:hover': {
+      //         fontWeight: 'bold',
+      //       },
+      //     }}
+      //   >
+      //     使用方法
+      //   </Link>
+      // }
     >
       <Stack spacing={3}>
         <FormItem label='网页挂件机器人'>
@@ -651,7 +651,7 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
                               <TextField
                                 fullWidth
                                 {...field}
-                                placeholder='本网站由 PandaWiki 提供技术支持'
+                                placeholder='本网站由 JCloudWiki 提供技术支持'
                                 error={!!errors.copyright_info}
                                 helperText={errors.copyright_info?.message}
                                 onChange={event => {

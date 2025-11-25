@@ -200,7 +200,7 @@ func (cfg *WechatServiceConfig) SendResponseToKfUrl(userId, openkfId, conversati
 		}
 	} else {
 		// 解析base64 -> default image
-		imageId, err = GetDefaultImageID(token, domain.DefaultPandaWikiIconB64)
+		imageId, err = GetDefaultImageID(token, domain.DefaultJCloudWikiIconB64)
 		if err != nil {
 			return err
 		}

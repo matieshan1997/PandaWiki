@@ -47,9 +47,10 @@ func NewDB(config *config.Config) (*DB, error) {
 			return nil, err
 		}
 	}
-	if err := doMigrate(dsn); err != nil {
-		return nil, err
-	}
+	// 本地开发时跳过数据库迁移，因为连接的是已经迁移好的服务器数据库
+	//if err := doMigrate(dsn); err != nil {
+	//	return nil, err
+	//}
 
 	return &DB{DB: db}, nil
 }

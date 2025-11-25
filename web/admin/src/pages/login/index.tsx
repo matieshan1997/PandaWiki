@@ -84,7 +84,7 @@ const Login = () => {
                 mb: 4,
               }}
             >
-              PandaWiki
+              JCloudWiki
             </Stack>
             <TextField
               value={account}
