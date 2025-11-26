@@ -92,7 +92,7 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 	}
 
 	//req.MaxKB = domain.GetBaseEditionLimitation(c.Request().Context()).MaxKb
-	req.MaxKB = 30 // 默认限制为10个知识库
+	req.MaxKB = 30 // 默认限制为30个知识库
 
 	did, err := h.usecase.CreateKnowledgeBase(c.Request().Context(), &req)
 	if err != nil {

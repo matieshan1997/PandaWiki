@@ -65,25 +65,16 @@ const Step1Model: React.FC<Step1ModelProps> = ({ ref }) => {
   }, [modelList]);
 
   const onSubmit = async () => {
-    // 检查模型模式设置
+    // 只检查手动模式的配置（已隐藏自动配置选项）
     try {
-      const modeSetting = await getApiV1ModelModeSetting();
-
-      // 如果是 auto 模式,检查是否配置了 API key
-      if (modeSetting?.mode === 'auto') {
-        if (!modeSetting.auto_mode_api_key) {
-          return Promise.reject(new Error('请点击应用完成模型配置'));
-        }
-      } else {
-        // 手动模式检查
-        if (
-          !chatModelData ||
-          !embeddingModelData ||
-          !rerankModelData ||
-          !analysisModelData
-        ) {
-          return Promise.reject(new Error('请配置必要的模型后点击应用'));
-        }
+      // 手动模式检查：验证所有必要的模型是否已配置
+      if (
+        !chatModelData ||
+        !embeddingModelData ||
+        !rerankModelData ||
+        !analysisModelData
+      ) {
+        return Promise.reject(new Error('请配置必要的模型'));
       }
     } catch (error) {
       if (error instanceof Error) {
