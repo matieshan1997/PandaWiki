@@ -642,7 +642,7 @@ func (u *AppUsecase) ShareGetWebAppInfo(ctx context.Context, kbID string, authId
 		appInfo.Settings.HomePageSetting = consts.HomePageSettingDoc
 	}
 	showBrand := true
-	defaultDisclaimer := "本回答由 PandaWiki 基于 AI 生成，仅供参考。"
+	defaultDisclaimer := "本回答由 JCloudWiki 基于 AI 生成，仅供参考。"
 
 	if !domain.GetBaseEditionLimitation(ctx).AllowCustomCopyright {
 		appInfo.Settings.WebAppCustomSettings.ShowBrandInfo = &showBrand

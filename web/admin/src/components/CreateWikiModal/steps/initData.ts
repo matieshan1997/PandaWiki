@@ -32,30 +32,30 @@ export const INIT_DOC_DATA = [
 ] as const;
 
 export const INIT_LADING_DATA = {
-  title: 'PandaWiki',
+  title: 'JCloudWiki',
   theme_mode: 'light',
   home_page_setting:
     ConstsHomePageSetting.HomePageSettingCustom as ConstsHomePageSetting,
   icon: '/images/init/icon.png',
   btns: [
-    {
-      icon: '/images/init/github_icon.png',
-      id: '1748421035847',
-      showIcon: true,
-      target: '_blank',
-      text: 'GitHub',
-      url: 'https://ly.safepoint.cloud/XEyeWqL',
-      variant: 'contained',
-    },
-    {
-      icon: '',
-      id: '1749634844746',
-      showIcon: false,
-      target: '_blank',
-      text: '微信交流群',
-      url: 'https://pandawiki.docs.baizhi.cloud/node/01971640-3937-7664-851d-a7f426d59764',
-      variant: 'outlined',
-    },
+    // {
+    //   icon: '/images/init/github_icon.png',
+    //   id: '1748421035847',
+    //   showIcon: true,
+    //   target: '_blank',
+    //   text: 'GitHub',
+    //   url: 'https://ly.safepoint.cloud/XEyeWqL',
+    //   variant: 'contained',
+    // },
+    // {
+    //   icon: '',
+    //   id: '1749634844746',
+    //   showIcon: false,
+    //   target: '_blank',
+    //   text: '微信交流群',
+    //   url: 'https://pandawiki.docs.baizhi.cloud/node/01971640-3937-7664-851d-a7f426d59764',
+    //   variant: 'outlined',
+    // },
   ],
   web_app_custom_style: {
     allow_theme_switching: false,
@@ -63,71 +63,71 @@ export const INIT_LADING_DATA = {
     show_brand_info: true,
     footer_show_intro: true,
     social_media_accounts: [
-      {
-        channel: 'wechat_oa',
-        text: '微信交流群',
-        link: '',
-        icon: '/images/init/weixin_qrcode.png',
-        phone: '',
-      },
+      // {
+      //   channel: 'wechat_oa',
+      //   text: '微信交流群',
+      //   link: '',
+      //   icon: '/images/init/weixin_qrcode.png',
+      //   phone: '',
+      // },
     ],
   },
   footer_settings: {
     footer_style: 'complex',
     corp_name: '',
     icp: '',
-    brand_name: 'PandaWiki 知识库',
+    brand_name: 'JCloudWiki 知识库',
     brand_desc:
-      'PandaWiki 是一款 AI 驱动的开源知识库系统，支持构建产品文档、技术文档、FAQ 和博客，提供AI创作、问答和搜索功能',
+      'JCloudWiki 是一款 AI 驱动的知识库系统，支持构建产品文档、技术文档、FAQ 和博客，提供AI创作、问答和搜索功能',
     brand_logo: '/images/init/brand_logo.png',
     brand_groups: [
-      {
-        name: '相关产品',
-        links: [
-          {
-            name: 'PandaWiki',
-            url: 'https://baizhi.cloud/landing/pandawiki',
-          },
-          {
-            name: 'MonkeyCode',
-            url: 'https://baizhi.cloud/landing/monkeycode',
-          },
-          {
-            name: 'KoalaQA',
-            url: 'https://baizhi.cloud/landing/koaloa',
-          },
-        ],
-      },
-      {
-        name: '长亭科技',
-        links: [
-          {
-            name: '长亭科技官网',
-            url: 'https://chaitin.cn/',
-          },
-          {
-            name: '长亭百智云',
-            url: 'https://baizhi.cloud/',
-          },
-          {
-            name: '长亭百川云',
-            url: 'https://rivers.chaitin.cn/',
-          },
-        ],
-      },
-      {
-        name: '其他',
-        links: [
-          {
-            name: '关于我们',
-            url: 'https://chaitin.cn/',
-          },
-          {
-            name: '开源协议',
-            url: 'https://github.com/chaitin/PandaWiki?tab=AGPL-3.0-1-ov-file#readme',
-          },
-        ],
-      },
+      // {
+      //   name: '相关产品',
+      //   links: [
+      //     {
+      //       name: 'PandaWiki',
+      //       url: 'https://baizhi.cloud/landing/pandawiki',
+      //     },
+      //     {
+      //       name: 'MonkeyCode',
+      //       url: 'https://baizhi.cloud/landing/monkeycode',
+      //     },
+      //     {
+      //       name: 'KoalaQA',
+      //       url: 'https://baizhi.cloud/landing/koaloa',
+      //     },
+      //   ],
+      // },
+      // {
+      //   name: '长亭科技',
+      //   links: [
+      //     {
+      //       name: '长亭科技官网',
+      //       url: 'https://chaitin.cn/',
+      //     },
+      //     {
+      //       name: '长亭百智云',
+      //       url: 'https://baizhi.cloud/',
+      //     },
+      //     {
+      //       name: '长亭百川云',
+      //       url: 'https://rivers.chaitin.cn/',
+      //     },
+      //   ],
+      // },
+      // {
+      //   name: '其他',
+      //   links: [
+      //     {
+      //       name: '关于我们',
+      //       url: 'https://chaitin.cn/',
+      //     },
+      //     {
+      //       name: '开源协议',
+      //       url: 'https://github.com/chaitin/PandaWiki?tab=AGPL-3.0-1-ov-file#readme',
+      //     },
+      //   ],
+      // },
     ],
   },
   web_app_landing_configs: [
@@ -149,101 +149,101 @@ export const INIT_LADING_DATA = {
           // '忘了admin的密码如何重置？',
         ],
         btns: [
-          {
-            id: '1760701149843',
-            text: '查看文档',
-            type: 'contained',
-            href: '',
-          },
-          {
-            id: '1760701163769',
-            text: '社区论坛',
-            type: 'outlined',
-            href: 'https://pandawiki.qa.baizhi.cloud',
-          },
+          // {
+          //   id: '1760701149843',
+          //   text: '查看文档',
+          //   type: 'contained',
+          //   href: '',
+          // },
+          // {
+          //   id: '1760701163769',
+          //   text: '社区论坛',
+          //   type: 'outlined',
+          //   href: 'https://pandawiki.qa.baizhi.cloud',
+          // },
         ],
       },
 
       node_ids: [],
       nodes: null,
     },
-    {
-      type: 'basic_doc',
-      basic_doc_config: {
-        title: '极速入门',
-        title_color: '#000000',
-        bg_color: '#ffffff00',
-      },
-      node_ids: [],
-    },
-    {
-      type: 'carousel',
-      carousel_config: {
-        title: '产品介绍',
-        bg_color: '#3248F2',
-        list: [
-          {
-            id: '1760701308042',
-            title: '数据统计',
-            url: '/images/init/carousel_data_statistics.jpg',
-            desc: '',
-          },
-          {
-            id: '1760701285851',
-            title: '文档管理',
-            url: '/images/init/carousel_doc_manage.jpg',
-            desc: '',
-          },
-          {
-            id: '1760701343411',
-            title: '文档首页',
-            url: '/images/init/carousel_doc_home.jpg',
-            desc: '',
-          },
-          {
-            id: '1760701321421',
-            title: '智能问答',
-            url: '/images/init/carousel_ai_qa.jpg',
-            desc: '',
-          },
-          {
-            id: '1760701346392',
-            title: '三方机器人集成',
-            url: '/images/init/carousel_third_party_robot.jpg',
-            desc: '',
-          },
-          {
-            id: '1760701385679',
-            title: '网页挂件机器人',
-            url: '/images/init/carousel_web_robot.jpg',
-            desc: '',
-          },
-        ],
-      },
-      node_ids: [],
-      nodes: null,
-    },
-    {
-      type: 'faq',
-      faq_config: {
-        title: '常见问题',
-        title_color: '#000000',
-        bg_color: '#ffffff00',
-        list: [
-          {
-            id: '1760701530938',
-            question: '回答出错 failed to format messages',
-            link: 'https://pandawiki.qa.baizhi.cloud/discuss/LqX2h8EfdqaGjbYW',
-          },
-          {
-            id: '1760701557320',
-            question: '安装失败',
-            link: 'https://pandawiki.qa.baizhi.cloud',
-          },
-        ],
-      },
-      node_ids: [],
-      nodes: null,
-    },
+    // {
+    //   type: 'basic_doc',
+    //   basic_doc_config: {
+    //     title: '极速入门',
+    //     title_color: '#000000',
+    //     bg_color: '#ffffff00',
+    //   },
+    //   node_ids: [],
+    // },
+    // {
+    //   type: 'carousel',
+    //   carousel_config: {
+    //     title: '产品介绍',
+    //     bg_color: '#3248F2',
+    //     list: [
+    //       {
+    //         id: '1760701308042',
+    //         title: '数据统计',
+    //         url: '/images/init/carousel_data_statistics.jpg',
+    //         desc: '',
+    //       },
+    //       {
+    //         id: '1760701285851',
+    //         title: '文档管理',
+    //         url: '/images/init/carousel_doc_manage.jpg',
+    //         desc: '',
+    //       },
+    //       {
+    //         id: '1760701343411',
+    //         title: '文档首页',
+    //         url: '/images/init/carousel_doc_home.jpg',
+    //         desc: '',
+    //       },
+    //       {
+    //         id: '1760701321421',
+    //         title: '智能问答',
+    //         url: '/images/init/carousel_ai_qa.jpg',
+    //         desc: '',
+    //       },
+    //       {
+    //         id: '1760701346392',
+    //         title: '三方机器人集成',
+    //         url: '/images/init/carousel_third_party_robot.jpg',
+    //         desc: '',
+    //       },
+    //       {
+    //         id: '1760701385679',
+    //         title: '网页挂件机器人',
+    //         url: '/images/init/carousel_web_robot.jpg',
+    //         desc: '',
+    //       },
+    //       ],
+    //     },
+    //     node_ids: [],
+    //     nodes: null,
+    //   },
+    //   {
+    //     type: 'faq',
+    //     faq_config: {
+    //       title: '常见问题',
+    //       title_color: '#000000',
+    //       bg_color: '#ffffff00',
+    //       list: [
+    //         {
+    //           id: '1760701530938',
+    //           question: '回答出错 failed to format messages',
+    //           link: 'https://pandawiki.qa.baizhi.cloud/discuss/LqX2h8EfdqaGjbYW',
+    //         },
+    //         {
+    //           id: '1760701557320',
+    //           question: '安装失败',
+    //           link: 'https://pandawiki.qa.baizhi.cloud',
+    //         },
+    //       ],
+    //     },
+    //     node_ids: [],
+    //     nodes: null,
+    //   },
   ],
 };

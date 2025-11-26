@@ -25,9 +25,9 @@ import dayjs from 'dayjs';
 const steps = [
   '模型配置',
   '配置监听',
-  '录入文档',
-  '发布内容',
-  '问答测试',
+  // '录入文档',
+  // '发布内容',
+  // '问答测试',
   '装饰页面',
   '完成配置',
 ];
@@ -88,26 +88,28 @@ const CreateWikiModal = () => {
         .finally(() => {
           setLoading(false);
         });
-    } else if (activeStep === 2) {
-      setLoading(true);
-      step3ImportRef.current
-        ?.onSubmit?.()
-        .then(res => {
-          setNodeIds(res.map(item => item.id));
-          setActiveStep(prev => prev + 1);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else if (activeStep === 3) {
-      setLoading(true);
-      onPublish().finally(() => {
-        setActiveStep(prev => prev + 1);
-        setLoading(false);
-      });
-    } else if (activeStep === 4) {
-      setActiveStep(prev => prev + 1);
-    } else if (activeStep === 5) {
+    }
+    // else if (activeStep === 2) {
+    //   setLoading(true);
+    //   step3ImportRef.current
+    //     ?.onSubmit?.()
+    //     .then(res => {
+    //       setNodeIds(res.map(item => item.id));
+    //       setActiveStep(prev => prev + 1);
+    //     })
+    //     .finally(() => {
+    //       setLoading(false);
+    //     });
+    // } else if (activeStep === 3) {
+    //   setLoading(true);
+    //   onPublish().finally(() => {
+    //     setActiveStep(prev => prev + 1);
+    //     setLoading(false);
+    //   });
+    // } else if (activeStep === 4) {
+    //   setActiveStep(prev => prev + 1);
+    // }
+    else if (activeStep === 2) {
       setLoading(true);
       step6DecorateRef.current
         ?.onSubmit?.()
@@ -117,7 +119,7 @@ const CreateWikiModal = () => {
         .finally(() => {
           setLoading(false);
         });
-    } else if (activeStep === 6) {
+    } else if (activeStep === 3) {
       onCancel();
     }
   };
@@ -134,15 +136,15 @@ const CreateWikiModal = () => {
         return <Step1Model ref={Step1ModelRef} />;
       case 1:
         return <Step2Config ref={step2ConfigRef} />;
+      // case 2:
+      //   return <Step3Import ref={step3ImportRef} />;
+      // case 3:
+      //   return <Step4Publish />;
+      // case 4:
+      //   return <Step5Test />;
       case 2:
-        return <Step3Import ref={step3ImportRef} />;
-      case 3:
-        return <Step4Publish />;
-      case 4:
-        return <Step5Test />;
-      case 5:
         return <Step6Decorate ref={step6DecorateRef} nodeIds={nodeIds} />;
-      case 6:
+      case 3:
         return <Step7Complete />;
       default:
         return null;
