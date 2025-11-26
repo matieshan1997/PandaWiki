@@ -372,9 +372,9 @@ func (h *NodeHandler) NodePermissionEdit(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request params failed", err)
 	}
 
-	if err := h.usecase.ValidateNodePermissionsEdit(req, consts.GetLicenseEdition(c)); err != nil {
-		return h.NewResponseWithError(c, "validate node permission failed", err)
-	}
+	//if err := h.usecase.ValidateNodePermissionsEdit(req, consts.GetLicenseEdition(c)); err != nil {
+	//	return h.NewResponseWithError(c, "validate node permission failed", err)
+	//}
 
 	ctx := c.Request().Context()
 	err := h.usecase.NodePermissionsEdit(ctx, req)
