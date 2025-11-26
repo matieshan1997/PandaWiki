@@ -28,7 +28,7 @@ services:
   app:
     container_name: jcloud-wiki-app
     restart: always
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v3.47.1
+    image: crpi-40v6m35jg47mwsej.cn-hangzhou.personal.cr.aliyuncs.com/jingyun-model-yungu/jcloud-wiki-app:v3.48.0
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.112"

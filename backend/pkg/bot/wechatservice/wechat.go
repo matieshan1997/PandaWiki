@@ -188,7 +188,7 @@ func (cfg *WechatServiceConfig) SendResponseToKfUrl(userId, openkfId, conversati
 	var imageId string
 	var err error
 	if image != "" && !strings.HasPrefix(image, "data:image/") { // user own image and not base64 image
-		imageId, err = GetUserImageID(token, fmt.Sprintf("%s%s", "http://panda-wiki-minio:9000", image))
+		imageId, err = GetUserImageID(token, fmt.Sprintf("%s%s", "http://jcloud-wiki-minio:9000", image))
 		if err != nil {
 			return err
 		}

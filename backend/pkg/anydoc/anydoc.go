@@ -30,9 +30,9 @@ type Client struct {
 }
 
 const (
-	apiUploaderUrl     = "http://panda-wiki-api:8000/api/v1/file/upload/anydoc"
+	apiUploaderUrl     = "http://jcloud-wiki-api:8000/api/v1/file/upload/anydoc"
 	uploaderDir        = "/image"
-	crawlerServiceHost = "http://panda-wiki-crawler:8080"
+	crawlerServiceHost = "http://jcloud-wiki-crawler:8080"
 	SpaceIdCloud       = "cloud_disk"
 	getUrlPath         = "/api/docs/url/list"
 	UrlExportPath      = "/api/docs/url/export"
