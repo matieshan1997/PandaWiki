@@ -286,7 +286,7 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
               />
               模型配置
             </Box>
-            {/* <RadioGroup
+            <RadioGroup
               row
               value={tempMode}
               onChange={e => {
@@ -308,7 +308,7 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
                 control={<Radio size='small' />}
                 label='手动配置'
               />
-            </RadioGroup> */}
+            </RadioGroup>
           </Box>
           {(tempMode !== savedMode || hasConfigChanged) && (
             <Button
