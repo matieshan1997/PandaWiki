@@ -5,7 +5,6 @@ import (
 
 	v1 "github.com/chaitin/panda-wiki/api/stat/v1"
 	"github.com/chaitin/panda-wiki/consts"
-	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/middleware"
@@ -64,10 +63,10 @@ func (h *StatHandler) StatCount(c echo.Context) error {
 		return h.NewResponseWithError(c, "validation failed", err)
 	}
 
-	if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
-		h.logger.Error("validate stat day failed")
-		return h.NewResponseWithErrCode(c, domain.ErrCodePermissionDenied)
-	}
+	//if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
+	//	h.logger.Error("validate stat day failed")
+	//	return h.NewResponseWithErrCode(c, domain.ErrCodePermissionDenied)
+	//}
 
 	count, err := h.usecase.GetStatCount(c.Request().Context(), req.KbID, req.Day)
 	if err != nil {
@@ -97,10 +96,10 @@ func (h *StatHandler) StatGeoCountReq(c echo.Context) error {
 		return h.NewResponseWithError(c, "validation failed", err)
 	}
 
-	if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
-		h.logger.Error("validate stat day failed")
-		return h.NewResponseWithErrCode(c, domain.ErrCodePermissionDenied)
-	}
+	//if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
+	//	h.logger.Error("validate stat day failed")
+	//	return h.NewResponseWithErrCode(c, domain.ErrCodePermissionDenied)
+	//}
 
 	geoCount, err := h.usecase.GetGeoCount(c.Request().Context(), req.KbID, req.Day)
 	if err != nil {
@@ -130,10 +129,10 @@ func (h *StatHandler) StatConversationDistribution(c echo.Context) error {
 		return h.NewResponseWithError(c, "validation failed", err)
 	}
 
-	if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
-		h.logger.Error("validate stat day failed")
-		return h.NewResponseWithErrCode(c, domain.ErrCodePermissionDenied)
-	}
+	//if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
+	//	h.logger.Error("validate stat day failed")
+	//	return h.NewResponseWithErrCode(c, domain.ErrCodePermissionDenied)
+	//}
 
 	distribution, err := h.usecase.GetConversationDistribution(c.Request().Context(), req.KbID, req.Day)
 	if err != nil {
@@ -163,9 +162,9 @@ func (h *StatHandler) StatHotPages(c echo.Context) error {
 		return h.NewResponseWithError(c, "validation failed", err)
 	}
 
-	if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
-		return h.NewResponseWithError(c, err.Error(), err)
-	}
+	//if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
+	//	return h.NewResponseWithError(c, err.Error(), err)
+	//}
 
 	hotPages, err := h.usecase.GetHotPages(c.Request().Context(), req.KbID, req.Day)
 	if err != nil {
@@ -195,9 +194,9 @@ func (h *StatHandler) StatRefererHosts(c echo.Context) error {
 		return h.NewResponseWithError(c, "validation failed", err)
 	}
 
-	if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
-		return h.NewResponseWithError(c, err.Error(), err)
-	}
+	//if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
+	//	return h.NewResponseWithError(c, err.Error(), err)
+	//}
 
 	refererHosts, err := h.usecase.GetHotRefererHosts(c.Request().Context(), req.KbID, req.Day)
 	if err != nil {
@@ -227,9 +226,9 @@ func (h *StatHandler) StatBrowsers(c echo.Context) error {
 		return h.NewResponseWithError(c, "validation failed", err)
 	}
 
-	if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
-		return h.NewResponseWithError(c, err.Error(), err)
-	}
+	//if err := h.usecase.ValidateStatDay(req.Day, consts.GetLicenseEdition(c)); err != nil {
+	//	return h.NewResponseWithError(c, err.Error(), err)
+	//}
 
 	hotBrowsers, err := h.usecase.GetHotBrowsers(c.Request().Context(), req.KbID, req.Day)
 	if err != nil {

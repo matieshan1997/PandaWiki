@@ -530,7 +530,7 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
               },
             }}
           >
-            PandaWiki 版权信息
+            JCloudWiki 版权信息
           </Box>
           <VersionMask
             permission={PROFESSION_VERSION_PERMISSION}
@@ -551,7 +551,7 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
                       alignItems: 'center',
                     }}
                   >
-                    展示 PandaWiki 版权信息
+                    展示 JCloudWiki 版权信息
                   </Box>
                   <Switch
                     sx={{ marginLeft: 'auto' }}
