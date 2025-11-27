@@ -19,6 +19,8 @@ import {
   Step7Complete,
 } from './steps';
 import dayjs from 'dayjs';
+import { INIT_LADING_DATA } from './steps/initData';
+import { getApiV1AppDetail, putApiV1App } from '@/request/App';
 
 // Remove interface as we're using Redux state
 
@@ -28,7 +30,7 @@ const steps = [
   // '录入文档',
   // '发布内容',
   // '问答测试',
-  '装饰页面',
+  // '装饰页面',
   '完成配置',
 ];
 
@@ -64,6 +66,76 @@ const CreateWikiModal = () => {
     });
   };
 
+  // 装饰页面逻辑：应用初始化配置
+  const applyDecorateSettings = (targetKbId?: string) => {
+    // 使用传入的 kb_id 或从 Redux store 获取
+    const currentKbId = targetKbId || kb_id;
+
+    console.log('🎨 开始应用装饰配置...');
+    console.log('📦 INIT_LADING_DATA:', INIT_LADING_DATA);
+    console.log('🆔 kb_id:', currentKbId);
+
+    if (!currentKbId) {
+      console.error('❌ kb_id 为空，无法应用装饰配置');
+      return Promise.reject(new Error('kb_id 为空'));
+    }
+
+    return getApiV1AppDetail({
+      kb_id: currentKbId,
+      type: '1',
+    })
+      .then(res => {
+        console.log('✅ 获取到 App 详情:', res);
+
+        const newSettings = {
+          ...res.settings,
+          ...INIT_LADING_DATA,
+          // 深度合并 footer_settings，保留原有的 corp_name 和 icp
+          footer_settings: {
+            ...res.settings?.footer_settings,
+            ...INIT_LADING_DATA.footer_settings,
+            // 如果 INIT_LADING_DATA 中的值为空，则保留原有值
+            corp_name:
+              INIT_LADING_DATA.footer_settings.corp_name ||
+              res.settings?.footer_settings?.corp_name ||
+              '',
+            icp:
+              INIT_LADING_DATA.footer_settings.icp ||
+              res.settings?.footer_settings?.icp ||
+              '',
+          },
+          web_app_landing_configs: INIT_LADING_DATA.web_app_landing_configs.map(
+            item => {
+              if (item.type === 'basic_doc') {
+                return {
+                  ...item,
+                  node_ids: nodeIds,
+                };
+              }
+              return item;
+            },
+          ),
+        };
+
+        console.log('🔧 新的 settings:', newSettings);
+
+        return putApiV1App(
+          { id: res.id! },
+          {
+            kb_id: currentKbId,
+            settings: newSettings,
+          },
+        ).then(updateRes => {
+          console.log('✅ 装饰配置应用成功:', updateRes);
+          return updateRes;
+        });
+      })
+      .catch(error => {
+        console.error('❌ 应用装饰配置失败:', error);
+        throw error;
+      });
+  };
+
   const handleNext = () => {
     if (activeStep === 0) {
       setLoading(true);
@@ -83,6 +155,19 @@ const CreateWikiModal = () => {
       step2ConfigRef.current
         ?.onSubmit?.()
         .then(() => {
+          // 配置监听完成后，从 localStorage 获取最新的 kb_id
+          const latestKbId = localStorage.getItem('kb_id') || '';
+          console.log('📍 从 localStorage 获取的 kb_id:', latestKbId);
+
+          // 配置监听完成后，自动执行装饰页面逻辑
+          return applyDecorateSettings(latestKbId);
+        })
+        .then(() => {
+          setActiveStep(prev => prev + 1);
+        })
+        .catch(error => {
+          console.error('应用装饰配置失败:', error);
+          // 即使装饰配置失败，也继续下一步
           setActiveStep(prev => prev + 1);
         })
         .finally(() => {
@@ -109,17 +194,18 @@ const CreateWikiModal = () => {
     // } else if (activeStep === 4) {
     //   setActiveStep(prev => prev + 1);
     // }
+    // else if (activeStep === 2) {
+    //   setLoading(true);
+    //   step6DecorateRef.current
+    //     ?.onSubmit?.()
+    //     .then(() => {
+    //       setActiveStep(prev => prev + 1);
+    //     })
+    //     .finally(() => {
+    //       setLoading(false);
+    //     });
+    // }
     else if (activeStep === 2) {
-      setLoading(true);
-      step6DecorateRef.current
-        ?.onSubmit?.()
-        .then(() => {
-          setActiveStep(prev => prev + 1);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else if (activeStep === 3) {
       onCancel();
     }
   };
@@ -142,9 +228,9 @@ const CreateWikiModal = () => {
       //   return <Step4Publish />;
       // case 4:
       //   return <Step5Test />;
+      // case 2:
+      //   return <Step6Decorate ref={step6DecorateRef} nodeIds={nodeIds} />;
       case 2:
-        return <Step6Decorate ref={step6DecorateRef} nodeIds={nodeIds} />;
-      case 3:
         return <Step7Complete />;
       default:
         return null;
