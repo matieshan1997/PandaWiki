@@ -22,7 +22,7 @@ export default function NotFound() {
         justifyContent='center'
         alignItems='center'
       >
-        <Image src={notFound.src} alt='404' width={380} height={200} />
+        {/*<Image src={notFound.src} alt='404' width={380} height={200} />*/}
         <Stack
           gap={3}
           alignItems='center'

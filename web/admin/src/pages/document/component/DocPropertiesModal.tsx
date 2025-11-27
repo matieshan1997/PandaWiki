@@ -53,15 +53,15 @@ const PER_OPTIONS = [
     label: '完全开放',
     value: ConstsNodeAccessPerm.NodeAccessPermOpen,
   },
-  {
-    label: (
-      <Stack direction={'row'} alignItems={'center'}>
-        <span>部分开放</span>
-        <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
-      </Stack>
-    ),
-    value: ConstsNodeAccessPerm.NodeAccessPermPartial,
-  },
+  // {
+  //   label: (
+  //     <Stack direction={'row'} alignItems={'center'}>
+  //       <span>部分开放</span>
+  //       <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+  //     </Stack>
+  //   ),
+  //   value: ConstsNodeAccessPerm.NodeAccessPermPartial,
+  // },
   {
     label: '完全禁止',
     value: ConstsNodeAccessPerm.NodeAccessPermClosed,
@@ -167,15 +167,15 @@ const DocPropertiesModal = ({
 
   useEffect(() => {
     if (open && data) {
-      if (isBusiness) {
-        getApiProV1AuthGroupList({
-          kb_id: kb_id!,
-          page: 1,
-          per_page: 9999,
-        }).then(res => {
-          setUserGroups(res.list || []);
-        });
-      }
+      // if (isBusiness) {
+      //   getApiProV1AuthGroupList({
+      //     kb_id: kb_id!,
+      //     page: 1,
+      //     per_page: 9999,
+      //   }).then(res => {
+      //     setUserGroups(res.list || []);
+      //   });
+      // }
       if (isBatch) return;
       setValue('name', data[0].name!);
       setValue('summary', data[0].summary!);
