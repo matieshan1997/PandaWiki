@@ -324,6 +324,9 @@ const Banner = React.memo(
     return (
       <StyledBanner
         sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
           ...(bg_url
             ? {
                 backgroundImage: `url(${bg_url})`,
@@ -338,8 +341,13 @@ const Banner = React.memo(
           sx={{
             alignItems: 'flex-start',
             gap: 0,
-            py: { xs: 8, md: '200px' },
-            pt: { xs: 16 },
+            py: { xs: 8, md: 10 },
+            pt: { xs: 16, md: 18 },
+            pb: { xs: 8, md: 8 },
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
           }}
         >
           <StyledTitle ref={titleRef}>{title.text}</StyledTitle>

@@ -61,7 +61,7 @@ export const INIT_LADING_DATA = {
     allow_theme_switching: false,
     header_search_placeholder: '问问AI吧',
     show_brand_info: true,
-    footer_show_intro: true,
+    footer_show_intro: false,
     social_media_accounts: [
       // {
       //   channel: 'wechat_oa',

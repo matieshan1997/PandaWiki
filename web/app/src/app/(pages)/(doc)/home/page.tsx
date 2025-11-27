@@ -4,7 +4,7 @@ import Home from '@/views/home';
 import { WelcomeFooter } from '@/components/footer';
 import { ThemeProvider } from '@ctzhian/ui';
 import { WelcomeHeader } from '@/components/header';
-import { Stack, createTheme } from '@mui/material';
+import { Stack, Box, createTheme } from '@mui/material';
 import { createComponentStyleOverrides } from '@/theme';
 import { useStore } from '@/provider';
 import { THEME_TO_PALETTE } from '@panda-wiki/themes/constants';
@@ -33,13 +33,17 @@ const HomePage = () => {
   return (
     <ThemeProvider theme={theme}>
       <Stack
-        justifyContent='space-between'
-        sx={{ minHeight: '100vh', bgcolor: 'background.default' }}
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
         <WelcomeHeader />
-        <Stack sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Home />
-        </Stack>
+        </Box>
         <WelcomeFooter />
       </Stack>
     </ThemeProvider>

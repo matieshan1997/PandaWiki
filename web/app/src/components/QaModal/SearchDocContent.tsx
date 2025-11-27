@@ -13,7 +13,6 @@ import {
   styled,
 } from '@mui/material';
 import Logo from '@/assets/images/logo.png';
-import noDocImage from '@/assets/images/no-doc.png';
 import Image from 'next/image';
 import { IconJinsousuo, IconFasong, IconMianbaoxie } from '@panda-wiki/icons';
 import { postShareV1ChatSearch } from '@/request/ShareChatSearch';
@@ -408,9 +407,8 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
 
       {searchResults.length === 0 && !isSearching && hasSearch && (
         <Box sx={{ my: 5, textAlign: 'center' }}>
-          <Image src={noDocImage} alt='暂无结果' width={250} />
           <Typography variant='body2' sx={{ color: 'text.tertiary' }}>
-            暂无相关结果
+            暂无结果
           </Typography>
         </Box>
       )}

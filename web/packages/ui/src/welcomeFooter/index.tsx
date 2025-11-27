@@ -458,40 +458,42 @@ const Footer = React.memo(
           <Box
             py={
               customStyle?.footer_show_intro
-                ? 6
+                ? 4
                 : (footerSetting?.brand_groups?.length || 0) > 0
-                  ? 6
+                  ? 4
                   : 0
             }
           >
             <Stack
               direction={'row'}
               gap={10}
-              justifyContent={
-                customStyle?.footer_show_intro === false
-                  ? 'center'
-                  : 'flex-start'
-              }
+              justifyContent='center'
+              alignItems='flex-start'
             >
               {customStyle?.footer_show_intro !== false && (
                 <Stack
                   direction={'column'}
-                  sx={{ width: '30%', minWidth: 200 }}
-                  gap={3}
+                  alignItems={'center'}
+                  sx={{
+                    width: 'auto',
+                    minWidth: 200,
+                    maxWidth: 700,
+                  }}
+                  gap={2}
                 >
                   <Stack direction={'row'} alignItems={'center'} gap={1}>
                     {footerSetting?.brand_logo && (
                       <img
                         src={footerSetting.brand_logo}
                         alt='JCloudWiki'
-                        height={36}
+                        height={32}
                       />
                     )}
                     <Box
                       sx={{
                         fontWeight: 'bold',
-                        lineHeight: '32px',
-                        fontSize: 24,
+                        lineHeight: '28px',
+                        fontSize: 20,
                       }}
                     >
                       {footerSetting?.brand_name}
@@ -501,15 +503,20 @@ const Footer = React.memo(
                   {footerSetting?.brand_desc && (
                     <Box
                       sx={theme => ({
-                        fontSize: 14,
-                        lineHeight: '26px',
-                        color: alpha(theme.palette.text.primary, 0.7),
+                        fontSize: 13,
+                        lineHeight: '22px',
+                        color: alpha(theme.palette.text.primary, 0.6),
+                        textAlign: 'center',
                       })}
                     >
                       {footerSetting.brand_desc}
                     </Box>
                   )}
-                  <Stack direction={'column'} gap={'26px'}>
+                  <Stack
+                    direction={'column'}
+                    gap={'20px'}
+                    alignItems={'center'}
+                  >
                     {customStyle?.social_media_accounts?.map(
                       (account, index) => {
                         return (
@@ -517,6 +524,7 @@ const Footer = React.memo(
                             direction={'row'}
                             key={index}
                             alignItems='center'
+                            justifyContent='center'
                             sx={theme => ({
                               position: 'relative',
                               '&:hover': {
@@ -635,54 +643,56 @@ const Footer = React.memo(
                 </Stack>
               )}
 
-              <Stack
-                direction={'row'}
-                width={'100%'}
-                justifyContent={'flex-start'}
-                flexWrap='wrap'
-              >
-                {footerSetting?.brand_groups?.map(group => (
-                  <Stack
-                    gap={1.5}
-                    key={group.name}
-                    sx={{
-                      flex: '0 0 33.33%',
-                      fontSize: 14,
-                      lineHeight: '22px',
-                      minWidth: '100px',
-                      '& a:hover': {
-                        color: 'primary.main',
-                      },
-                    }}
-                  >
-                    <Box
+              {(footerSetting?.brand_groups?.length || 0) > 0 && (
+                <Stack
+                  direction={'row'}
+                  width={'100%'}
+                  justifyContent={'flex-start'}
+                  flexWrap='wrap'
+                >
+                  {footerSetting?.brand_groups?.map(group => (
+                    <Stack
+                      gap={1.5}
+                      key={group.name}
                       sx={{
-                        fontSize: 16,
-                        lineHeight: '24px',
-                        mb: 1,
+                        flex: '0 0 33.33%',
+                        fontSize: 14,
+                        lineHeight: '22px',
+                        minWidth: '100px',
+                        '& a:hover': {
+                          color: 'primary.main',
+                        },
                       }}
                     >
-                      {group.name}
-                    </Box>
-                    {group.links?.map(link => (
                       <Box
-                        sx={theme => ({
-                          color: alpha(theme.palette.text.primary, 0.5),
-                        })}
-                        key={link.name}
+                        sx={{
+                          fontSize: 16,
+                          lineHeight: '24px',
+                          mb: 1,
+                        }}
                       >
-                        <Link
-                          href={link?.url || ''}
-                          target='_blank'
+                        {group.name}
+                      </Box>
+                      {group.links?.map(link => (
+                        <Box
+                          sx={theme => ({
+                            color: alpha(theme.palette.text.primary, 0.5),
+                          })}
                           key={link.name}
                         >
-                          {link.name}
-                        </Link>
-                      </Box>
-                    ))}
-                  </Stack>
-                ))}
-              </Stack>
+                          <Link
+                            href={link?.url || ''}
+                            target='_blank'
+                            key={link.name}
+                          >
+                            {link.name}
+                          </Link>
+                        </Box>
+                      ))}
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
             </Stack>
           </Box>
 
