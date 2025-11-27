@@ -332,7 +332,7 @@ const Footer = React.memo(
                 })}
               >
                 <Link
-                  href={'https://pandawiki.docs.baizhi.cloud/'}
+                  href={'https://www.jingyunos.com/gongsijieshao/'}
                   target='_blank'
                 >
                   <Stack
@@ -344,7 +344,7 @@ const Footer = React.memo(
                     }}
                   >
                     <Box>{decodeBase64(PROJECT_NAME)}</Box>
-                    <img src={logo} alt='PandaWiki' width={0} height={0} />
+                    <img src={logo} alt='JCloudWiki' width={0} height={0} />
                   </Stack>
                 </Link>
               </Stack>
